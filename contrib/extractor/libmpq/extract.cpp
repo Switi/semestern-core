@@ -49,13 +49,15 @@
  *  unsigned int * size - Max. number of bytes to read
  *  void * param        - Custom pointer, parameter of implode/explode
  */
-static unsigned int libmpq_pkzip_read_input_data(char *buf, unsigned int *size, void *param) {
-    pkzip_data *info = (pkzip_data *)param;
+static unsigned int libmpq_pkzip_read_input_data(char* buf, unsigned int* size, void* param)
+{
+    pkzip_data* info = (pkzip_data*)param;
     unsigned int max_avail = (info->in_bytes - info->in_pos);
     unsigned int to_read = *size;
 
     /* Check the case when not enough data available */
-    if (to_read > max_avail) {
+    if (to_read > max_avail)
+    {
         to_read = max_avail;
     }
 
@@ -76,13 +78,15 @@ static unsigned int libmpq_pkzip_read_input_data(char *buf, unsigned int *size, 
  *  unsigned int * size - Number of bytes to write
  *  void * param        - Custom pointer, parameter of implode/explode
  */
-static void libmpq_pkzip_write_output_data(char *buf, unsigned int *size, void *param) {
-    pkzip_data *info = (pkzip_data *)param;
+static void libmpq_pkzip_write_output_data(char* buf, unsigned int* size, void* param)
+{
+    pkzip_data* info = (pkzip_data*)param;
     unsigned int max_write = (info->max_out - info->out_pos);
     unsigned int to_write = *size;
 
     /* Check the case when not enough space in the output buffer */
-    if (to_write > max_write) {
+    if (to_write > max_write)
+    {
         to_write = max_write;
     }
 
@@ -91,9 +95,10 @@ static void libmpq_pkzip_write_output_data(char *buf, unsigned int *size, void *
     info->out_pos += to_write;
 }
 
-int libmpq_pkzip_decompress(char *out_buf, int *out_length, char *in_buf, int in_length) {
+int libmpq_pkzip_decompress(char* out_buf, int* out_length, char* in_buf, int in_length)
+{
     pkzip_data info;                    /* Data information */
-    char *work_buf = (char *)malloc(LIBMPQ_PKZIP_EXP_BUFFER_SIZE);  /* mpq_pkzip work buffer */
+    char* work_buf = (char*)malloc(LIBMPQ_PKZIP_EXP_BUFFER_SIZE);   /* mpq_pkzip work buffer */
 
     /* Fill data information structure */
     info.in_buf   = in_buf;
@@ -110,33 +115,37 @@ int libmpq_pkzip_decompress(char *out_buf, int *out_length, char *in_buf, int in
     return 0;
 }
 
-int libmpq_wave_decompress_mono(char *out_buf, int *out_length, char *in_buf, int in_length) {
-    *out_length = libmpq_wave_decompress((unsigned char *)out_buf, *out_length, (unsigned char *)in_buf, in_length, 1);
+int libmpq_wave_decompress_mono(char* out_buf, int* out_length, char* in_buf, int in_length)
+{
+    *out_length = libmpq_wave_decompress((unsigned char*)out_buf, *out_length, (unsigned char*)in_buf, in_length, 1);
     return 1;
 }
 
-int libmpq_wave_decompress_stereo(char *out_buf, int *out_length, char *in_buf, int in_length) {
-    *out_length = libmpq_wave_decompress((unsigned char *)out_buf, *out_length, (unsigned char *)in_buf, in_length, 2);
+int libmpq_wave_decompress_stereo(char* out_buf, int* out_length, char* in_buf, int in_length)
+{
+    *out_length = libmpq_wave_decompress((unsigned char*)out_buf, *out_length, (unsigned char*)in_buf, in_length, 2);
     return 1;
 }
 
-int libmpq_zlib_decompress(char *out_buf, int *out_length, char *in_buf, int in_length) {
+int libmpq_zlib_decompress(char* out_buf, int* out_length, char* in_buf, int in_length)
+{
 #ifdef HAVE_LIBZ
     z_stream z;                 /* Stream information for zlib */
     int result;
 
     /* Fill the stream structure for zlib */
-    z.next_in   = (Bytef *)in_buf;
+    z.next_in   = (Bytef*)in_buf;
     z.avail_in  = (uInt)in_length;
     z.total_in  = in_length;
-    z.next_out  = (Bytef *)out_buf;
+    z.next_out  = (Bytef*)out_buf;
     z.avail_out = *out_length;
     z.total_out = 0;
     z.zalloc    = NULL;
     z.zfree     = NULL;
 
     /* Initialize the decompression structure. Storm.dll uses zlib version 1.1.3 */
-    if ((result = inflateInit(&z)) == 0) {
+    if ((result = inflateInit(&z)) == 0)
+    {
 
         /* Call zlib to decompress the data */
         result = inflate(&z, Z_FINISH);
@@ -156,24 +165,25 @@ int libmpq_zlib_decompress(char *out_buf, int *out_length, char *in_buf, int in_
  *
  *  1500F5F0
  */
-int libmpq_huff_decompress(char *out_buf, int *out_length, char *in_buf, int in_length) {
-    struct huffman_tree     *ht = (huffman_tree *)malloc(sizeof(struct huffman_tree));
-    struct huffman_input_stream *is = (huffman_input_stream *)malloc(sizeof(struct huffman_input_stream));
-    struct huffman_tree_item    *hi = (huffman_tree_item *)malloc(sizeof(struct huffman_tree_item));
+int libmpq_huff_decompress(char* out_buf, int* out_length, char* in_buf, int in_length)
+{
+    struct huffman_tree*     ht = (huffman_tree*)malloc(sizeof(struct huffman_tree));
+    struct huffman_input_stream* is = (huffman_input_stream*)malloc(sizeof(struct huffman_input_stream));
+    struct huffman_tree_item*    hi = (huffman_tree_item*)malloc(sizeof(struct huffman_tree_item));
     memset(ht, 0, sizeof(struct huffman_tree));
     memset(is, 0, sizeof(struct huffman_input_stream));
     memset(hi, 0, sizeof(struct huffman_tree_item));
 
     /* Initialize input stream */
-    is->bit_buf  = *(unsigned long *)in_buf;
+    is->bit_buf  = *(unsigned long*)in_buf;
     in_buf      += sizeof(unsigned long);
-    is->in_buf   = (unsigned char *)in_buf;
+    is->in_buf   = (unsigned char*)in_buf;
     is->bits     = 32;
 
     /* Initialize the Huffmann tree for decompression */
     libmpq_huff_init_tree(ht, hi, LIBMPQ_HUFF_DECOMPRESS);
 
-    *out_length = libmpq_huff_do_decompress(ht, is, (unsigned char *)out_buf, *out_length);
+    *out_length = libmpq_huff_do_decompress(ht, is, (unsigned char*)out_buf, *out_length);
 
     free(hi);
     free(is);
@@ -181,9 +191,10 @@ int libmpq_huff_decompress(char *out_buf, int *out_length, char *in_buf, int in_
     return 0;
 }
 
-int libmpq_multi_decompress(char *out_buf, int *pout_length, char *in_buf, int in_length) {
-    char        *temp_buf = NULL;       /* Temporary storage for decompressed data */
-    char        *work_buf = NULL;       /* Where to store decompressed data */
+int libmpq_multi_decompress(char* out_buf, int* pout_length, char* in_buf, int in_length)
+{
+    char*        temp_buf = NULL;       /* Temporary storage for decompressed data */
+    char*        work_buf = NULL;       /* Where to store decompressed data */
     int     out_length = *pout_length;  /* For storage number of output bytes */
     unsigned    fDecompressions1;       /* Decompressions applied to the block */
     unsigned    fDecompressions2;       /* Just another copy of decompressions applied to the block */
@@ -192,8 +203,10 @@ int libmpq_multi_decompress(char *out_buf, int *pout_length, char *in_buf, int i
     int     i;
 
     /* If the input length is the same as output, do nothing. */
-    if (in_length == out_length) {
-        if (in_buf == out_buf) {
+    if (in_length == out_length)
+    {
+        if (in_buf == out_buf)
+        {
             return 1;
         }
         memcpy(out_buf, in_buf, in_length);
@@ -201,13 +214,15 @@ int libmpq_multi_decompress(char *out_buf, int *pout_length, char *in_buf, int i
     }
 
     /* Get applied compression types and decrement data length */
-    fDecompressions1 = fDecompressions2 = (unsigned char)*in_buf++;
+    fDecompressions1 = fDecompressions2 = (unsigned char) * in_buf++;
     in_length--;
 
     /* Search decompression table type and get all types of compression */
-    for (i = 0; i < entries; i++) {
+    for (i = 0; i < entries; i++)
+    {
         /* We have to apply this decompression? */
-        if (fDecompressions1 & dcmp_table[i].mask) {
+        if (fDecompressions1 & dcmp_table[i].mask)
+        {
             count++;
         }
 
@@ -219,21 +234,25 @@ int libmpq_multi_decompress(char *out_buf, int *pout_length, char *in_buf, int i
      *  Check if there is some method unhandled
      *  (E.g. compressed by future versions)
      */
-    if (fDecompressions2 != 0) {
+    if (fDecompressions2 != 0)
+    {
         printf("Unknown Compression\n");
         return 0;
     }
 
     /* If there is more than only one compression, we have to allocate extra buffer */
-    if (count >= 2) {
-        temp_buf = (char *)malloc(out_length);
+    if (count >= 2)
+    {
+        temp_buf = (char*)malloc(out_length);
     }
 
     /* Apply all decompressions */
-    for (i = 0, count = 0; i < entries; i++) {
+    for (i = 0, count = 0; i < entries; i++)
+    {
 
         /* If not used this kind of compression, skip the loop */
-        if (fDecompressions1 & dcmp_table[i].mask) {
+        if (fDecompressions1 & dcmp_table[i].mask)
+        {
 
             /* If odd case, use target buffer for output, otherwise use allocated tempbuf */
             work_buf = (count++ & 1) ? temp_buf : out_buf;
@@ -249,15 +268,16 @@ int libmpq_multi_decompress(char *out_buf, int *pout_length, char *in_buf, int i
     }
 
     /* If output buffer is not the same like target buffer, we have to copy data */
-    if (work_buf != out_buf) {
+    if (work_buf != out_buf)
+    {
         memcpy(out_buf, in_buf, out_length);
     }
     *pout_length = out_length;
 
     /* Delete temporary buffer, if necessary */
-    if (temp_buf != NULL) {
+    if (temp_buf != NULL)
+    {
         free(temp_buf);
     }
     return 1;
 }
-

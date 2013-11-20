@@ -1,7 +1,5 @@
-/*
- * Copyright (C) 2005-2008 MaNGOS <http://www.mangosproject.org/>
- *
- * Copyright (C) 2008 Trinity <http://www.trinitycore.org/>
+/**
+ * This code is part of MaNGOS. Contributor & Copyright details are in AUTHORS/THANKS.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -10,19 +8,22 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
 #ifndef _DatabasePostgre_H
 #define _DatabasePostgre_H
 
+#include "Common.h"
+#include "Database.h"
 #include "Policies/Singleton.h"
-#include "zthread/FastMutex.h"
+#include "ace/Thread_Mutex.h"
+#include "ace/Guard_T.h"
 #include <stdarg.h>
 
 #ifdef WIN32
@@ -33,9 +34,34 @@
 #include <libpq-fe.h>
 #endif
 
-class DatabasePostgre : public Database
+class MANGOS_DLL_SPEC PostgreSQLConnection : public SqlConnection
 {
-    friend class Trinity::OperatorNew<DatabasePostgre>;
+    public:
+        PostgreSQLConnection() : mPGconn(NULL) {}
+        ~PostgreSQLConnection();
+
+        bool Initialize(const char* infoString) override;
+
+        QueryResult* Query(const char* sql) override;
+        QueryNamedResult* QueryNamed(const char* sql) override;
+        bool Execute(const char* sql) override;
+
+        unsigned long escape_string(char* to, const char* from, unsigned long length);
+
+        bool BeginTransaction() override;
+        bool CommitTransaction() override;
+        bool RollbackTransaction() override;
+
+    private:
+        bool _TransactionCmd(const char* sql);
+        bool _Query(const char* sql, PGresult** pResult, uint64* pRowCount, uint32* pFieldCount) override;
+
+        PGconn* mPGconn;
+};
+
+class MANGOS_DLL_SPEC DatabasePostgre : public Database
+{
+        friend class MaNGOS::OperatorNew<DatabasePostgre>;
 
     public:
         DatabasePostgre();
@@ -43,36 +69,11 @@ class DatabasePostgre : public Database
 
         //! Initializes Postgres and connects to a server.
         /*! infoString should be formated like hostname;username;password;database. */
-        bool Initialize(const char *infoString);
-        void InitDelayThread();
-        void HaltDelayThread();
-        QueryResult* Query(const char *sql);
-        bool Execute(const char *sql);
-        bool DirectExecute(const char* sql);
-        bool BeginTransaction();
-        bool CommitTransaction();
-        bool RollbackTransaction();
 
-        operator bool () const { return mPGconn != NULL; }
+    protected:
+        virtual SqlConnection* CreateConnection() override;
 
-        unsigned long escape_string(char *to, const char *from, unsigned long length);
-        using Database::escape_string;
-
-        // must be call before first query in thread
-        void ThreadStart();
-        // must be call before finish thread run
-        void ThreadEnd();
     private:
-        ZThread::FastMutex mMutex;
-        ZThread::FastMutex tranMutex;
-
-        ZThread::ThreadImpl* tranThread;
-
-        PGconn *mPGconn;
-
         static size_t db_count;
-
-        bool _TransactionCmd(const char *sql);
 };
 #endif
-

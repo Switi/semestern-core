@@ -1,7 +1,5 @@
-/*
- * Copyright (C) 2005-2008 MaNGOS <http://www.mangosproject.org/>
- *
- * Copyright (C) 2008 Trinity <http://www.trinitycore.org/>
+/**
+ * This code is part of MaNGOS. Contributor & Copyright details are in AUTHORS/THANKS.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -10,34 +8,50 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
 #include "Common.h"
 
-char const* localeNames[MAX_LOCALE] = {
-  "enUS",
-  "koKR",
-  "frFR",
-  "deDE",
-  "zhCN",
-  "zhTW",
-  "esES",
-  "esMX",
-  "ruRU"
+char const* localeNames[MAX_LOCALE] =
+{
+    "enUS",                                                 // also enGB
+    "koKR",
+    "frFR",
+    "deDE",
+    "zhCN",
+    "zhTW",
+    "esES",
+    "esMX",
+    "ruRU"
+};
+
+// used for search by name or iterate all names
+LocaleNameStr const fullLocaleNameList[] =
+{
+    { "enUS", LOCALE_enUS },
+    { "enGB", LOCALE_enUS },
+    { "koKR", LOCALE_koKR },
+    { "frFR", LOCALE_frFR },
+    { "deDE", LOCALE_deDE },
+    { "zhCN", LOCALE_zhCN },
+    { "zhTW", LOCALE_zhTW },
+    { "esES", LOCALE_esES },
+    { "esMX", LOCALE_esMX },
+    { "ruRU", LOCALE_ruRU },
+    { NULL,   LOCALE_enUS }
 };
 
 LocaleConstant GetLocaleByName(const std::string& name)
 {
-    for(uint32 i = 0; i < MAX_LOCALE; ++i)
-        if(name==localeNames[i])
-            return LocaleConstant(i);
+    for (LocaleNameStr const* itr = &fullLocaleNameList[0]; itr->name; ++itr)
+        if (name == itr->name)
+            return itr->locale;
 
     return LOCALE_enUS;                                     // including enGB case
 }
-

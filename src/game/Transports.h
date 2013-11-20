@@ -1,7 +1,5 @@
-/*
- * Copyright (C) 2005-2008 MaNGOS <http://www.mangosproject.org/>
- *
- * Copyright (C) 2008 Trinity <http://www.trinitycore.org/>
+/**
+ * This code is part of MaNGOS. Contributor & Copyright details are in AUTHORS/THANKS.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -10,12 +8,12 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
 #ifndef TRANSPORTS_H
@@ -27,81 +25,43 @@
 #include <set>
 #include <string>
 
-class TransportPath
-{
-    public:
-        struct PathNode
-        {
-            uint32 mapid;
-            float x,y,z;
-            uint32 actionFlag;
-            uint32 delay;
-        };
-
-        inline void SetLength(const unsigned int sz)
-        {
-            i_nodes.resize( sz );
-        }
-
-        inline unsigned int Size(void) const { return i_nodes.size(); }
-        inline bool Empty(void) const { return i_nodes.empty(); }
-        inline void Resize(unsigned int sz) { i_nodes.resize(sz); }
-        inline void Clear(void) { i_nodes.clear(); }
-        inline PathNode* GetNodes(void) { return static_cast<PathNode *>(&i_nodes[0]); }
-
-        PathNode& operator[](const unsigned int idx) { return i_nodes[idx]; }
-        const PathNode& operator()(const unsigned int idx) const { return i_nodes[idx]; }
-
-    protected:
-        std::vector<PathNode> i_nodes;
-};
-
-class Transport : private GameObject
+class Transport : public GameObject
 {
     public:
         explicit Transport();
 
-        // prevent using Transports as normal GO, but allow call some inherited functions
-        using GameObject::IsTransport;
-        using GameObject::GetEntry;
-        using GameObject::GetGUID;
-        using GameObject::GetGUIDLow;
-        using GameObject::GetMapId;
-        using GameObject::GetPositionX;
-        using GameObject::GetPositionY;
-        using GameObject::GetPositionZ;
-        using GameObject::BuildCreateUpdateBlockForPlayer;
-        using GameObject::BuildOutOfRangeUpdateBlock;
-
-        bool Create(uint32 guidlow, uint32 mapid, float x, float y, float z, float ang, uint32 animprogress, uint32 dynflags);
+        bool Create(uint32 guidlow, uint32 mapid, float x, float y, float z, float ang, uint32 animprogress);
         bool GenerateWaypoints(uint32 pathid, std::set<uint32> &mapids);
-        void Update(uint32 p_time);
+        void Update(uint32 update_diff, uint32 p_time) override;
         bool AddPassenger(Player* passenger);
         bool RemovePassenger(Player* passenger);
-        void CheckForEvent(uint32 entry, uint32 wp_id);
 
         typedef std::set<Player*> PlayerSet;
         PlayerSet const& GetPassengers() const { return m_passengers; }
 
-        std::string m_name;
     private:
         struct WayPoint
         {
-            WayPoint() : mapid(0), x(0), y(0), z(0), teleport(false), id(0) {}
-            WayPoint(uint32 _mapid, float _x, float _y, float _z, bool _teleport, uint32 _id) :
-            mapid(_mapid), x(_x), y(_y), z(_z), teleport(_teleport), id(_id) {}
+            WayPoint() : mapid(0), x(0), y(0), z(0), teleport(false) {}
+            WayPoint(uint32 _mapid, float _x, float _y, float _z, bool _teleport, uint32 _arrivalEventID = 0, uint32 _departureEventID = 0)
+                : mapid(_mapid), x(_x), y(_y), z(_z), teleport(_teleport),
+                  arrivalEventID(_arrivalEventID), departureEventID(_departureEventID)
+            {
+            }
+
             uint32 mapid;
             float x;
             float y;
             float z;
             bool teleport;
-            uint32 id;
+            uint32 arrivalEventID;
+            uint32 departureEventID;
         };
 
         typedef std::map<uint32, WayPoint> WayPointMap;
 
-        WayPointMap::iterator m_curr;
-        WayPointMap::iterator m_next;
+        WayPointMap::const_iterator m_curr;
+        WayPointMap::const_iterator m_next;
         uint32 m_pathTime;
         uint32 m_timer;
 
@@ -114,7 +74,8 @@ class Transport : private GameObject
 
     private:
         void TeleportTransport(uint32 newMapid, float x, float y, float z);
-        WayPointMap::iterator GetNextWayPoint();
+        void UpdateForMap(Map const* map);
+        void DoEventIfAny(WayPointMap::value_type const& node, bool departure);
+        void MoveToNextWayPoint();                          // move m_next/m_cur to next points
 };
 #endif
-

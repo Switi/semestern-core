@@ -1,7 +1,5 @@
-/*
- * Copyright (C) 2005-2008 MaNGOS <http://www.mangosproject.org/>
- *
- * Copyright (C) 2008 Trinity <http://www.trinitycore.org/>
+/**
+ * This code is part of MaNGOS. Contributor & Copyright details are in AUTHORS/THANKS.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,58 +21,100 @@
 #ifndef _DATABASEMYSQL_H
 #define _DATABASEMYSQL_H
 
+//#include "Common.h"
 #include "Database.h"
 #include "Policies/Singleton.h"
-#include "zthread/FastMutex.h"
+#include "ace/Thread_Mutex.h"
+#include "ace/Guard_T.h"
 
 #ifdef WIN32
-#define FD_SETSIZE 1024
 #include <winsock2.h>
 #include <mysql/mysql.h>
 #else
 #include <mysql.h>
 #endif
 
-class TRINITY_DLL_SPEC DatabaseMysql : public Database
+// MySQL prepared statement class
+class MANGOS_DLL_SPEC MySqlPreparedStatement : public SqlPreparedStatement
 {
-    friend class Trinity::OperatorNew<DatabaseMysql>;
+    public:
+        MySqlPreparedStatement(const std::string& fmt, SqlConnection& conn, MYSQL* mysql);
+        ~MySqlPreparedStatement();
+
+        // prepare statement
+        virtual bool prepare() override;
+
+        // bind input parameters
+        virtual void bind(const SqlStmtParameters& holder) override;
+
+        // execute DML statement
+        virtual bool execute() override;
+
+    protected:
+        // bind parameters
+        void addParam(unsigned int nIndex, const SqlStmtFieldData& data);
+
+        static enum_field_types ToMySQLType(const SqlStmtFieldData& data, my_bool& bUnsigned);
+
+    private:
+        void RemoveBinds();
+
+        MYSQL* m_pMySQLConn;
+        MYSQL_STMT* m_stmt;
+        MYSQL_BIND* m_pInputArgs;
+        MYSQL_BIND* m_pResult;
+        MYSQL_RES* m_pResultMetadata;
+};
+
+class MANGOS_DLL_SPEC MySQLConnection : public SqlConnection
+{
+    public:
+        MySQLConnection(Database& db) : SqlConnection(db), mMysql(NULL) {}
+        ~MySQLConnection();
+
+        //! Initializes Mysql and connects to a server.
+        /*! infoString should be formated like hostname;username;password;database. */
+        bool Initialize(const char* infoString) override;
+
+        QueryResult* Query(const char* sql) override;
+        QueryNamedResult* QueryNamed(const char* sql) override;
+        bool Execute(const char* sql) override;
+
+        unsigned long escape_string(char* to, const char* from, unsigned long length);
+
+        bool BeginTransaction() override;
+        bool CommitTransaction() override;
+        bool RollbackTransaction() override;
+
+    protected:
+        SqlPreparedStatement* CreateStatement(const std::string& fmt) override;
+
+    private:
+        bool _TransactionCmd(const char* sql);
+        bool _Query(const char* sql, MYSQL_RES** pResult, MYSQL_FIELD** pFields, uint64* pRowCount, uint32* pFieldCount);
+
+        MYSQL* mMysql;
+};
+
+class MANGOS_DLL_SPEC DatabaseMysql : public Database
+{
+        friend class MaNGOS::OperatorNew<DatabaseMysql>;
 
     public:
         DatabaseMysql();
         ~DatabaseMysql();
 
-        //! Initializes Mysql and connects to a server.
-        /*! infoString should be formated like hostname;username;password;database. */
-        bool Initialize(const char *infoString, bool initDelayThread = true);
-        void InitDelayThread(const char* infoString);
-        void HaltDelayThread();
-        QueryResult* Query(const char *sql);
-        bool Execute(const char *sql);
-        bool DirectExecute(const char* sql);
-        bool BeginTransaction();
-        bool CommitTransaction();
-        bool RollbackTransaction();
-
-        operator bool () const { return mMysql != NULL; }
-
-        unsigned long escape_string(char *to, const char *from, unsigned long length);
-        using Database::escape_string;
-
         // must be call before first query in thread
-        void ThreadStart();
+        void ThreadStart() override;
         // must be call before finish thread run
-        void ThreadEnd();
+        void ThreadEnd() override;
+
+    protected:
+        virtual SqlConnection* CreateConnection() override;
+
     private:
-        ZThread::FastMutex mMutex;
-
-        ZThread::ThreadImpl* tranThread;
-
-        MYSQL *mMysql;
-
         static size_t db_count;
-
-        bool _TransactionCmd(const char *sql);
 };
-#endif
-#endif
 
+#endif
+#endif

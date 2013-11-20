@@ -1,7 +1,5 @@
-/*
- * Copyright (C) 2005-2008 MaNGOS <http://www.mangosproject.org/>
- *
- * Copyright (C) 2008 Trinity <http://www.trinitycore.org/>
+/**
+ * This code is part of MaNGOS. Contributor & Copyright details are in AUTHORS/THANKS.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -10,41 +8,31 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
 #ifdef DO_POSTGRESQL
 
 #include "Util.h"
-#include "Policies/SingletonImp.h"
+#include "Policies/Singleton.h"
 #include "Platform/Define.h"
-#include "../src/zthread/ThreadImpl.h"
+#include "Threading.h"
 #include "DatabaseEnv.h"
-#include "Database/PGSQLDelayThread.h"
 #include "Database/SqlOperations.h"
 #include "Timer.h"
 
-void DatabasePostgre::ThreadStart()
-{
-}
-
-void DatabasePostgre::ThreadEnd()
-{
-}
-
 size_t DatabasePostgre::db_count = 0;
 
-DatabasePostgre::DatabasePostgre() : Database(), mPGconn(NULL)
+DatabasePostgre::DatabasePostgre()
 {
     // before first connection
-    if( db_count++ == 0 )
+    if (db_count++ == 0)
     {
-
         if (!PQisthreadsafe())
         {
             sLog.outError("FATAL ERROR: PostgreSQL libpq isn't thread-safe.");
@@ -55,175 +43,164 @@ DatabasePostgre::DatabasePostgre() : Database(), mPGconn(NULL)
 
 DatabasePostgre::~DatabasePostgre()
 {
-
-    if (m_delayThread)
-        HaltDelayThread();
-
-    if( mPGconn )
-    {
-        PQfinish(mPGconn);
-        mPGconn = NULL;
-    }
 }
 
-bool DatabasePostgre::Initialize(const char *infoString)
+SqlConnection* DatabasePostgre::CreateConnection()
 {
-    if(!Database::Initialize(infoString))
-        return false;
+    return new PostgreSQLConnection();
+}
 
-    tranThread = NULL;
+PostgreSQLConnection::~PostgreSQLConnection()
+{
+    PQfinish(mPGconn);
+}
 
-    InitDelayThread();
-
+bool PostgreSQLConnection::Initialize(const char* infoString)
+{
     Tokens tokens = StrSplit(infoString, ";");
 
     Tokens::iterator iter;
 
-    std::string host, port_or_socket, user, password, database;
+    std::string host, port_or_socket_dir, user, password, database;
 
     iter = tokens.begin();
 
-    if(iter != tokens.end())
+    if (iter != tokens.end())
         host = *iter++;
-    if(iter != tokens.end())
-        port_or_socket = *iter++;
-    if(iter != tokens.end())
+    if (iter != tokens.end())
+        port_or_socket_dir = *iter++;
+    if (iter != tokens.end())
         user = *iter++;
-    if(iter != tokens.end())
+    if (iter != tokens.end())
         password = *iter++;
-    if(iter != tokens.end())
+    if (iter != tokens.end())
         database = *iter++;
 
-    mPGconn = PQsetdbLogin(host.c_str(), port_or_socket.c_str(), NULL, NULL, database.c_str(), user.c_str(), password.c_str());
+    if (host == ".")
+        mPGconn = PQsetdbLogin(NULL, port_or_socket_dir == "." ? NULL : port_or_socket_dir.c_str(), NULL, NULL, database.c_str(), user.c_str(), password.c_str());
+    else
+        mPGconn = PQsetdbLogin(host.c_str(), port_or_socket_dir.c_str(), NULL, NULL, database.c_str(), user.c_str(), password.c_str());
 
     /* check to see that the backend connection was successfully made */
     if (PQstatus(mPGconn) != CONNECTION_OK)
     {
-        sLog.outError( "Could not connect to Postgre database at %s: %s",
-            host.c_str(), PQerrorMessage(mPGconn));
+        sLog.outError("Could not connect to Postgre database at %s: %s",
+                      host.c_str(), PQerrorMessage(mPGconn));
         PQfinish(mPGconn);
+        mPGconn = NULL;
+        return false;
+    }
+
+    DETAIL_LOG("Connected to Postgre database %s@%s:%s/%s", user.c_str(), host.c_str(), port_or_socket_dir.c_str(), database.c_str());
+    sLog.outString("PostgreSQL server ver: %d", PQserverVersion(mPGconn));
+    return true;
+}
+
+bool PostgreSQLConnection::_Query(const char* sql, PGresult** pResult, uint64* pRowCount, uint32* pFieldCount)
+{
+    if (!mPGconn)
+        return false;
+
+    uint32 _s = WorldTimer::getMSTime();
+    // Send the query
+    *pResult = PQexec(mPGconn, sql);
+    if (!*pResult)
+        return false;
+
+    if (PQresultStatus(*pResult) != PGRES_TUPLES_OK)
+    {
+        sLog.outErrorDb("SQL : %s", sql);
+        sLog.outErrorDb("SQL %s", PQerrorMessage(mPGconn));
+        PQclear(*pResult);
         return false;
     }
     else
     {
-        sLog.outDetail( "Connected to Postgre database at %s",
-            host.c_str());
-        sLog.outString( "PostgreSQL server ver: %d",PQserverVersion(mPGconn));
-        return true;
+        DEBUG_FILTER_LOG(LOG_FILTER_SQL_TEXT, "[%u ms] SQL: %s", WorldTimer::getMSTimeDiff(_s, WorldTimer::getMSTime()), sql);
     }
 
+    *pRowCount = PQntuples(*pResult);
+    *pFieldCount = PQnfields(*pResult);
+    // end guarded block
+
+    if (!*pRowCount)
+    {
+        PQclear(*pResult);
+        return false;
+    }
+
+    return true;
 }
 
-QueryResult* DatabasePostgre::Query(const char *sql)
+QueryResult* PostgreSQLConnection::Query(const char* sql)
 {
     if (!mPGconn)
-        return 0;
+        return NULL;
 
+    PGresult* result = NULL;
     uint64 rowCount = 0;
     uint32 fieldCount = 0;
 
-    // guarded block for thread-safe request
-    ZThread::Guard<ZThread::FastMutex> query_connection_guard(mMutex);
-    #ifdef TRINITY_DEBUG
-    uint32 _s = getMSTime();
-    #endif
-    // Send the query
-    PGresult * result = PQexec(mPGconn, sql);
-    if (!result )
-    {
+    if (!_Query(sql, &result, &rowCount, &fieldCount))
         return NULL;
-    }
 
-    if (PQresultStatus(result) != PGRES_TUPLES_OK)
-    {
-        sLog.outErrorDb( "SQL : %s", sql );
-        sLog.outErrorDb( "SQL %s", PQerrorMessage(mPGconn));
-        PQclear(result);
-        return NULL;
-    }
-    else
-    {
-        #ifdef TRINITY_DEBUG
-        sLog.outDebug("[%u ms] SQL: %s", getMSTime() - _s, sql );
-        #endif
-    }
+    QueryResultPostgre* queryResult = new QueryResultPostgre(result, rowCount, fieldCount);
 
-    rowCount = PQntuples(result);
-    fieldCount = PQnfields(result);
-    // end guarded block
-
-    if (!rowCount)
-    {
-        PQclear(result);
-        return NULL;
-    }
-
-    QueryResultPostgre * queryResult = new QueryResultPostgre(result, rowCount, fieldCount);
     queryResult->NextRow();
-
     return queryResult;
 }
 
-bool DatabasePostgre::Execute(const char *sql)
+QueryNamedResult* PostgreSQLConnection::QueryNamed(const char* sql)
 {
+    if (!mPGconn)
+        return NULL;
 
+    PGresult* result = NULL;
+    uint64 rowCount = 0;
+    uint32 fieldCount = 0;
+
+    if (!_Query(sql, &result, &rowCount, &fieldCount))
+        return NULL;
+
+    QueryFieldNames names(fieldCount);
+    for (uint32 i = 0; i < fieldCount; ++i)
+        names[i] = PQfname(result, i);
+
+    QueryResultPostgre* queryResult = new QueryResultPostgre(result, rowCount, fieldCount);
+
+    queryResult->NextRow();
+    return new QueryNamedResult(queryResult, names);
+}
+
+bool PostgreSQLConnection::Execute(const char* sql)
+{
     if (!mPGconn)
         return false;
 
-    // don't use queued execution if it has not been initialized
-    if (!m_threadBody) return DirectExecute(sql);
+    uint32 _s = WorldTimer::getMSTime();
 
-    tranThread = ZThread::ThreadImpl::current();            // owner of this transaction
-    TransactionQueues::iterator i = m_tranQueues.find(tranThread);
-    if (i != m_tranQueues.end() && i->second != NULL)
-    {                                                       // Statement for transaction
-        i->second->DelayExecute(sql);
+    PGresult* res = PQexec(mPGconn, sql);
+    if (PQresultStatus(res) != PGRES_COMMAND_OK)
+    {
+        sLog.outErrorDb("SQL: %s", sql);
+        sLog.outErrorDb("SQL %s", PQerrorMessage(mPGconn));
+        return false;
     }
     else
     {
-        // Simple sql statement
-        m_threadBody->Delay(new SqlStatement(sql));
+        DEBUG_FILTER_LOG(LOG_FILTER_SQL_TEXT, "[%u ms] SQL: %s", WorldTimer::getMSTimeDiff(_s, WorldTimer::getMSTime()), sql);
     }
 
+    PQclear(res);
     return true;
 }
 
-bool DatabasePostgre::DirectExecute(const char* sql)
-{
-    if (!mPGconn)
-        return false;
-    {
-        // guarded block for thread-safe  request
-        ZThread::Guard<ZThread::FastMutex> query_connection_guard(mMutex);
-        #ifdef TRINITY_DEBUG
-        uint32 _s = getMSTime();
-        #endif
-        PGresult *res = PQexec(mPGconn, sql);
-        if (PQresultStatus(res) != PGRES_COMMAND_OK)
-        {
-            sLog.outErrorDb( "SQL: %s", sql );
-            sLog.outErrorDb( "SQL %s", PQerrorMessage(mPGconn) );
-            return false;
-        }
-        else
-        {
-            #ifdef TRINITY_DEBUG
-            sLog.outDebug("[%u ms] SQL: %s", getMSTime() - _s, sql );
-            #endif
-        }
-        PQclear(res);
-
-        // end guarded block
-    }
-    return true;
-}
-
-bool DatabasePostgre::_TransactionCmd(const char *sql)
+bool PostgreSQLConnection::_TransactionCmd(const char* sql)
 {
     if (!mPGconn)
         return false;
 
-    PGresult *res = PQexec(mPGconn, sql);
+    PGresult* res = PQexec(mPGconn, sql);
     if (PQresultStatus(res) != PGRES_COMMAND_OK)
     {
         sLog.outError("SQL: %s", sql);
@@ -237,88 +214,22 @@ bool DatabasePostgre::_TransactionCmd(const char *sql)
     return true;
 }
 
-bool DatabasePostgre::BeginTransaction()
+bool PostgreSQLConnection::BeginTransaction()
 {
-    if (!mPGconn)
-        return false;
-    // don't use queued execution if it has not been initialized
-    if (!m_threadBody)
-    {
-        if (tranThread==ZThread::ThreadImpl::current())
-            return false;                                   // huh? this thread already started transaction
-        mMutex.acquire();
-        if (!_TransactionCmd("START TRANSACTION"))
-        {
-            mMutex.release();                               // can't start transaction
-            return false;
-        }
-        return true;
-    }
-    // transaction started
-    tranThread = ZThread::ThreadImpl::current();            // owner of this transaction
-    TransactionQueues::iterator i = m_tranQueues.find(tranThread);
-    if (i != m_tranQueues.end() && i->second != NULL)
-        // If for thread exists queue and also contains transaction
-        // delete that transaction (not allow trans in trans)
-        delete i->second;
-
-    m_tranQueues[tranThread] = new SqlTransaction();
-
-    return true;
+    return _TransactionCmd("START TRANSACTION");
 }
 
-bool DatabasePostgre::CommitTransaction()
+bool PostgreSQLConnection::CommitTransaction()
 {
-    if (!mPGconn)
-        return false;
-
-    // don't use queued execution if it has not been initialized
-    if (!m_threadBody)
-    {
-        if (tranThread!=ZThread::ThreadImpl::current())
-            return false;
-        bool _res = _TransactionCmd("COMMIT");
-        tranThread = NULL;
-        mMutex.release();
-        return _res;
-    }
-    tranThread = ZThread::ThreadImpl::current();
-    TransactionQueues::iterator i = m_tranQueues.find(tranThread);
-    if (i != m_tranQueues.end() && i->second != NULL)
-    {
-        m_threadBody->Delay(i->second);
-        i->second = NULL;
-        return true;
-    }
-    else
-        return false;
+    return _TransactionCmd("COMMIT");
 }
 
-bool DatabasePostgre::RollbackTransaction()
+bool PostgreSQLConnection::RollbackTransaction()
 {
-    if (!mPGconn)
-        return false;
-    // don't use queued execution if it has not been initialized
-    if (!m_threadBody)
-    {
-        if (tranThread!=ZThread::ThreadImpl::current())
-            return false;
-        bool _res = _TransactionCmd("ROLLBACK");
-        tranThread = NULL;
-        mMutex.release();
-        return _res;
-    }
-    tranThread = ZThread::ThreadImpl::current();
-    TransactionQueues::iterator i = m_tranQueues.find(tranThread);
-    if (i != m_tranQueues.end() && i->second != NULL)
-    {
-        delete i->second;
-        i->second = NULL;
-    }
-    return true;
+    return _TransactionCmd("ROLLBACK");
 }
 
-unsigned long DatabasePostgre::escape_string(char *to, const char *from, unsigned long length)
+unsigned long PostgreSQLConnection::escape_string(char* to, const char* from, unsigned long length)
 {
     if (!mPGconn || !to || !from || !length)
         return 0;
@@ -326,23 +237,4 @@ unsigned long DatabasePostgre::escape_string(char *to, const char *from, unsigne
     return PQescapeString(to, from, length);
 }
 
-void DatabasePostgre::InitDelayThread()
-{
-    assert(!m_delayThread);
-
-    //New delay thread for delay execute
-    m_delayThread = new ZThread::Thread(m_threadBody = new PGSQLDelayThread(this));
-}
-
-void DatabasePostgre::HaltDelayThread()
-{
-    if (!m_threadBody || !m_delayThread) return;
-
-    m_threadBody->Stop();                                   //Stop event
-    m_delayThread->wait();                                  //Wait for flush to DB
-    delete m_delayThread;                                   //This also deletes m_threadBody
-    m_delayThread = NULL;
-    m_threadBody = NULL;
-}
 #endif
-

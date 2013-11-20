@@ -28,14 +28,16 @@
 #include "wave.h"
 
 /* Tables necessary dor decompression */
-static unsigned long wave_table_1503f120[] = {
+static unsigned long wave_table_1503f120[] =
+{
     0xFFFFFFFF, 0x00000000, 0xFFFFFFFF, 0x00000004, 0xFFFFFFFF, 0x00000002, 0xFFFFFFFF, 0x00000006,
     0xFFFFFFFF, 0x00000001, 0xFFFFFFFF, 0x00000005, 0xFFFFFFFF, 0x00000003, 0xFFFFFFFF, 0x00000007,
     0xFFFFFFFF, 0x00000001, 0xFFFFFFFF, 0x00000005, 0xFFFFFFFF, 0x00000003, 0xFFFFFFFF, 0x00000007,
     0xFFFFFFFF, 0x00000002, 0xFFFFFFFF, 0x00000004, 0xFFFFFFFF, 0x00000006, 0xFFFFFFFF, 0x00000008
 };
 
-static unsigned long wave_table_1503f1a0[] = {
+static unsigned long wave_table_1503f1a0[] =
+{
     0x00000007, 0x00000008, 0x00000009, 0x0000000A, 0x0000000B, 0x0000000C, 0x0000000D, 0x0000000E,
     0x00000010, 0x00000011, 0x00000013, 0x00000015, 0x00000017, 0x00000019, 0x0000001C, 0x0000001F,
     0x00000022, 0x00000025, 0x00000029, 0x0000002D, 0x00000032, 0x00000037, 0x0000003C, 0x00000042,
@@ -55,10 +57,11 @@ static unsigned long wave_table_1503f1a0[] = {
  *
  *  Offset: 1500F230
  */
-int libmpq_wave_decompress(unsigned char *out_buf, int out_length, unsigned char *in_buf, int in_length, int channels) {
+int libmpq_wave_decompress(unsigned char* out_buf, int out_length, unsigned char* in_buf, int in_length, int channels)
+{
     byte_and_short out;
     byte_and_short in;
-    unsigned char *in_end = in_buf + in_length; /* End on input buffer */
+    unsigned char* in_end = in_buf + in_length; /* End on input buffer */
     unsigned long index;
     long nr_array1[2];
     long nr_array2[2];
@@ -71,20 +74,24 @@ int libmpq_wave_decompress(unsigned char *out_buf, int out_length, unsigned char
     in.pw++;
 
     /* 15007AD7 */
-    for (count = 0; count < channels; count++) {
+    for (count = 0; count < channels; count++)
+    {
         long temp;
-        temp = *(short *)in.pw++;
+        temp = *(short*)in.pw++;
         nr_array2[count] = temp;
-        if (out_length < 2) {
+        if (out_length < 2)
+        {
             return out.pb - out_buf;
         }
         *out.pw++   = (unsigned short)temp;
         out_length -= 2;
     }
     index = channels - 1;
-    while (in.pb < in_end) {
+    while (in.pb < in_end)
+    {
         unsigned char one_byte = *in.pb++;
-        if (channels == 2) {
+        if (channels == 2)
+        {
             index = (index == 0) ? 1 : 0;
         }
 
@@ -92,14 +99,18 @@ int libmpq_wave_decompress(unsigned char *out_buf, int out_length, unsigned char
          * Get one byte from input buffer
          * 15007B25
          */
-        if (one_byte & 0x80) {
+        if (one_byte & 0x80)
+        {
             /* 15007B32 */
-            switch(one_byte & 0x7F) {
+            switch (one_byte & 0x7F)
+            {
                 case 0:                 /* 15007B8E */
-                    if (nr_array1[index] != 0) {
+                    if (nr_array1[index] != 0)
+                    {
                         nr_array1[index]--;
                     }
-                    if (out_length < 2) {
+                    if (out_length < 2)
+                    {
                         break;
                     }
                     *out.pw++ = (unsigned short)nr_array2[index];
@@ -107,10 +118,12 @@ int libmpq_wave_decompress(unsigned char *out_buf, int out_length, unsigned char
                     continue;
                 case 1:                 /* 15007B72 */
                     nr_array1[index] += 8;      /* EBX also */
-                    if (nr_array1[index] > 0x58) {
+                    if (nr_array1[index] > 0x58)
+                    {
                         nr_array1[index] = 0x58;
                     }
-                    if (channels == 2) {
+                    if (channels == 2)
+                    {
                         index = (index == 0) ? 1 : 0;
                     }
                     continue;
@@ -118,50 +131,66 @@ int libmpq_wave_decompress(unsigned char *out_buf, int out_length, unsigned char
                     continue;
                 default:
                     nr_array1[index] -= 8;
-                    if (nr_array1[index] < 0) {
+                    if (nr_array1[index] < 0)
+                    {
                         nr_array1[index] = 0;
                     }
-                    if (channels != 2) {
+                    if (channels != 2)
+                    {
                         continue;
                     }
                     index = (index == 0) ? 1 : 0;
                     continue;
             }
-        } else {
+        }
+        else
+        {
             unsigned long temp1 = wave_table_1503f1a0[nr_array1[index]];    /* EDI */
             unsigned long temp2 = temp1 >> in_buf[1];   /* ESI */
             long temp3 = nr_array2[index];          /* ECX */
-            if (one_byte & 0x01) {              /* EBX = one_byte */
+            if (one_byte & 0x01)                /* EBX = one_byte */
+            {
                 temp2 += (temp1 >> 0);
             }
-            if (one_byte & 0x02) {
+            if (one_byte & 0x02)
+            {
                 temp2 += (temp1 >> 1);
             }
-            if (one_byte & 0x04) {
+            if (one_byte & 0x04)
+            {
                 temp2 += (temp1 >> 2);
             }
-            if (one_byte & 0x08) {
+            if (one_byte & 0x08)
+            {
                 temp2 += (temp1 >> 3);
             }
-            if (one_byte & 0x10) {
+            if (one_byte & 0x10)
+            {
                 temp2 += (temp1 >> 4);
             }
-            if (one_byte & 0x20) {
+            if (one_byte & 0x20)
+            {
                 temp2 += (temp1 >> 5);
             }
-            if(one_byte & 0x40) {
+            if (one_byte & 0x40)
+            {
                 temp3 -= temp2;
-                if (temp3 <= (long)0xFFFF8000) {
+                if (temp3 <= (long)0xFFFF8000)
+                {
                     temp3 = (long)0xFFFF8000;
                 }
-            } else {
+            }
+            else
+            {
                 temp3 += temp2;
-                if (temp3 >= 0x7FFF) {
+                if (temp3 >= 0x7FFF)
+                {
                     temp3 = 0x7FFF;
                 }
             }
             nr_array2[index] = temp3;
-            if (out_length < 2) {
+            if (out_length < 2)
+            {
                 break;
             }
 
@@ -172,10 +201,14 @@ int libmpq_wave_decompress(unsigned char *out_buf, int out_length, unsigned char
             temp2 += wave_table_1503f120[one_byte];
             nr_array1[index] = temp2;
 
-            if (nr_array1[index] < 0) {
+            if (nr_array1[index] < 0)
+            {
                 nr_array1[index] = 0;
-            } else {
-                if (nr_array1[index] > 0x58) {
+            }
+            else
+            {
+                if (nr_array1[index] > 0x58)
+                {
                     nr_array1[index] = 0x58;
                 }
             }
@@ -183,4 +216,3 @@ int libmpq_wave_decompress(unsigned char *out_buf, int out_length, unsigned char
     }
     return (out.pb - out_buf);
 }
-

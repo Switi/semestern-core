@@ -1,7 +1,5 @@
-/*
- * Copyright (C) 2005-2008 MaNGOS <http://www.mangosproject.org/>
- *
- * Copyright (C) 2008 Trinity <http://www.trinitycore.org/>
+/**
+ * This code is part of MaNGOS. Contributor & Copyright details are in AUTHORS/THANKS.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -10,12 +8,12 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
 #ifndef _GRIDREFERENCE_H
@@ -23,33 +21,49 @@
 
 #include "Utilities/LinkedReference/Reference.h"
 
-template<class OBJECT>
-class GridRefManager;
+template<class OBJECT> class GridRefManager;
 
 template<class OBJECT>
-class TRINITY_DLL_SPEC GridReference : public Reference<GridRefManager<OBJECT>, OBJECT>
+class MANGOS_DLL_SPEC GridReference : public Reference<GridRefManager<OBJECT>, OBJECT>
 {
     protected:
-        void targetObjectBuildLink()
+
+        void targetObjectBuildLink() override
         {
             // called from link()
             this->getTarget()->insertFirst(this);
             this->getTarget()->incSize();
         }
-        void targetObjectDestroyLink()
+
+        void targetObjectDestroyLink() override
         {
             // called from unlink()
-            if(this->isValid()) this->getTarget()->decSize();
+            if (this->isValid())
+                this->getTarget()->decSize();
         }
-        void sourceObjectDestroyLink()
+
+        void sourceObjectDestroyLink() override
         {
             // called from invalidate()
             this->getTarget()->decSize();
         }
-    public:
-        GridReference() : Reference<GridRefManager<OBJECT>, OBJECT>() {}
-        ~GridReference() { this->unlink(); }
-        GridReference *next() { return (GridReference*)Reference<GridRefManager<OBJECT>, OBJECT>::next(); }
-};
-#endif
 
+    public:
+
+        GridReference()
+            : Reference<GridRefManager<OBJECT>, OBJECT>()
+        {
+        }
+
+        ~GridReference()
+        {
+            this->unlink();
+        }
+
+        GridReference* next()
+        {
+            return (GridReference*)Reference<GridRefManager<OBJECT>, OBJECT>::next();
+        }
+};
+
+#endif

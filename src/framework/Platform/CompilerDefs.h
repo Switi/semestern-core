@@ -1,7 +1,5 @@
-/*
- * Copyright (C) 2005-2008 MaNGOS <http://www.mangosproject.org/>
- *
- * Copyright (C) 2008 Trinity <http://www.trinitycore.org/>
+/**
+ * This code is part of MaNGOS. Contributor & Copyright details are in AUTHORS/THANKS.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -10,16 +8,16 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef TRINITY_COMPILERDEFS_H
-#define TRINITY_COMPILERDEFS_H
+#ifndef MANGOS_COMPILERDEFS_H
+#define MANGOS_COMPILERDEFS_H
 
 #define PLATFORM_WINDOWS 0
 #define PLATFORM_UNIX    1
@@ -31,6 +29,7 @@
 #  define PLATFORM PLATFORM_WINDOWS
 #elif defined( __WIN32__ ) || defined( WIN32 ) || defined( _WIN32 )
 #  define PLATFORM PLATFORM_WINDOWS
+#  define WIN_X86
 #elif defined( __APPLE_CC__ )
 #  define PLATFORM PLATFORM_APPLE
 #elif defined( __INTEL_COMPILER )
@@ -61,4 +60,3 @@
 #  pragma warning( disable : 4786 )                         // identifier was truncated to '255' characters in the debug information
 #endif
 #endif
-

@@ -1,7 +1,5 @@
-/*
- * Copyright (C) 2005-2008 MaNGOS <http://www.mangosproject.org/>
- *
- * Copyright (C) 2008 Trinity <http://www.trinitycore.org/>
+/**
+ * This code is part of MaNGOS. Contributor & Copyright details are in AUTHORS/THANKS.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,4 +25,3 @@ void LoadRandomEnchantmentsTable();
 uint32 GetItemEnchantMod(uint32 entry);
 uint32 GenerateEnchSuffixFactor(uint32 item_id);
 #endif
-

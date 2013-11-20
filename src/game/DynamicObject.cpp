@@ -1,7 +1,5 @@
-/*
- * Copyright (C) 2005-2008 MaNGOS <http://www.mangosproject.org/>
- *
- * Copyright (C) 2008 Trinity <http://www.trinitycore.org/>
+/**
+ * This code is part of MaNGOS. Contributor & Copyright details are in AUTHORS/THANKS.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,26 +17,23 @@
  */
 
 #include "Common.h"
-#include "GameObject.h"
 #include "UpdateMask.h"
 #include "Opcodes.h"
-#include "WorldPacket.h"
-#include "WorldSession.h"
 #include "World.h"
 #include "ObjectAccessor.h"
 #include "Database/DatabaseEnv.h"
-#include "SpellAuras.h"
-#include "MapManager.h"
 #include "GridNotifiers.h"
 #include "CellImpl.h"
 #include "GridNotifiersImpl.h"
+#include "SpellMgr.h"
+#include "DBCStores.h"
 
 DynamicObject::DynamicObject() : WorldObject()
 {
     m_objectType |= TYPEMASK_DYNAMICOBJECT;
     m_objectTypeId = TYPEID_DYNAMICOBJECT;
-                                                            // 2.3.2 - 0x58
-    m_updateFlag = (UPDATEFLAG_LOWGUID | UPDATEFLAG_HIGHGUID | UPDATEFLAG_HASPOSITION);
+    // 2.3.2 - 0x58
+    m_updateFlag = (UPDATEFLAG_LOWGUID | UPDATEFLAG_HIGHGUID | UPDATEFLAG_HAS_POSITION);
 
     m_valuesCount = DYNAMICOBJECT_END;
 }
@@ -46,67 +41,88 @@ DynamicObject::DynamicObject() : WorldObject()
 void DynamicObject::AddToWorld()
 {
     ///- Register the dynamicObject for guid lookup
-    if(!IsInWorld())
-    {
-        ObjectAccessor::Instance().AddObject(this);
-        WorldObject::AddToWorld();
-    }
+    if (!IsInWorld())
+        GetMap()->GetObjectsStore().insert<DynamicObject>(GetObjectGuid(), (DynamicObject*)this);
+
+    Object::AddToWorld();
 }
 
 void DynamicObject::RemoveFromWorld()
 {
     ///- Remove the dynamicObject from the accessor
-    if(IsInWorld())
+    if (IsInWorld())
     {
-        ObjectAccessor::Instance().RemoveObject(this);
-        WorldObject::RemoveFromWorld();
+        GetMap()->GetObjectsStore().erase<DynamicObject>(GetObjectGuid(), (DynamicObject*)NULL);
+        GetViewPoint().Event_RemovedFromWorld();
     }
+
+    Object::RemoveFromWorld();
 }
 
-bool DynamicObject::Create( uint32 guidlow, Unit *caster, uint32 spellId, uint32 effIndex, float x, float y, float z, int32 duration, float radius )
+bool DynamicObject::Create(uint32 guidlow, Unit* caster, uint32 spellId, SpellEffectIndex effIndex, float x, float y, float z, int32 duration, float radius, DynamicObjectType type)
 {
-    SetInstanceId(caster->GetInstanceId());
+    WorldObject::_Create(guidlow, HIGHGUID_DYNAMICOBJECT);
+    SetMap(caster->GetMap());
+    Relocate(x, y, z, 0);
 
-    WorldObject::_Create(guidlow, HIGHGUID_DYNAMICOBJECT, caster->GetMapId());
-    Relocate(x,y,z,0);
-
-    if(!IsPositionValid())
+    if (!IsPositionValid())
     {
-        sLog.outError("ERROR: DynamicObject (spell %u eff %u) not created. Suggested coordinates isn't valid (X: %f Y: %f)",spellId,effIndex,GetPositionX(),GetPositionY());
+        sLog.outError("DynamicObject (spell %u eff %u) not created. Suggested coordinates isn't valid (X: %f Y: %f)", spellId, effIndex, GetPositionX(), GetPositionY());
         return false;
     }
 
     SetEntry(spellId);
-    SetFloatValue( OBJECT_FIELD_SCALE_X, 1 );
-    SetUInt64Value( DYNAMICOBJECT_CASTER, caster->GetGUID() );
-    SetUInt32Value( DYNAMICOBJECT_BYTES, 0x00000001 );
-    SetUInt32Value( DYNAMICOBJECT_SPELLID, spellId );
-    SetFloatValue( DYNAMICOBJECT_RADIUS, radius);
-    SetFloatValue( DYNAMICOBJECT_POS_X, x );
-    SetFloatValue( DYNAMICOBJECT_POS_Y, y );
-    SetFloatValue( DYNAMICOBJECT_POS_Z, z );
-    SetUInt32Value( DYNAMICOBJECT_CASTTIME, getMSTime() );  // new 2.4.0
+    SetObjectScale(DEFAULT_OBJECT_SCALE);
+
+    SetGuidValue(DYNAMICOBJECT_CASTER, caster->GetObjectGuid());
+
+    /* Bytes field, so it's really 4 bit fields. These flags are unknown, but we do know that 0x00000001 is set for most.
+       Farsight for example, does not have this flag, instead it has 0x80000002.
+       Flags are set dynamically with some conditions, so one spell may have different flags set, depending on those conditions.
+       The size of the visual may be controlled to some degree with these flags.
+
+    uint32 bytes = 0x00000000;
+    bytes |= 0x01;
+    bytes |= 0x00 << 8;
+    bytes |= 0x00 << 16;
+    bytes |= 0x00 << 24;
+    */
+    SetByteValue(DYNAMICOBJECT_BYTES, 0, type);
+
+    SetUInt32Value(DYNAMICOBJECT_SPELLID, spellId);
+    SetFloatValue(DYNAMICOBJECT_RADIUS, radius);
+    SetFloatValue(DYNAMICOBJECT_POS_X, x);
+    SetFloatValue(DYNAMICOBJECT_POS_Y, y);
+    SetFloatValue(DYNAMICOBJECT_POS_Z, z);
+    SetUInt32Value(DYNAMICOBJECT_CASTTIME, WorldTimer::getMSTime());    // new 2.4.0
+
+    SpellEntry const* spellProto = sSpellStore.LookupEntry(spellId);
+    if (!spellProto)
+    {
+        sLog.outError("DynamicObject (spell %u) not created. Spell not exist!", spellId);
+        return false;
+    }
 
     m_aliveDuration = duration;
     m_radius = radius;
     m_effIndex = effIndex;
     m_spellId = spellId;
-    m_casterGuid = caster->GetGUID();
-    m_updateTimer = 0;
+    m_positive = IsPositiveEffect(spellProto, m_effIndex);
+
     return true;
 }
 
 Unit* DynamicObject::GetCaster() const
 {
     // can be not found in some cases
-    return ObjectAccessor::GetUnit(*this,m_casterGuid);
+    return ObjectAccessor::GetUnit(*this, GetCasterGuid());
 }
 
-void DynamicObject::Update(uint32 p_time)
+void DynamicObject::Update(uint32 /*update_diff*/, uint32 p_time)
 {
     // caster can be not in world at time dynamic object update, but dynamic object not yet deleted in Unit destructor
     Unit* caster = GetCaster();
-    if(!caster)
+    if (!caster)
     {
         Delete();
         return;
@@ -114,46 +130,96 @@ void DynamicObject::Update(uint32 p_time)
 
     bool deleteThis = false;
 
-    if(m_aliveDuration > int32(p_time))
+    if (m_aliveDuration > int32(p_time))
         m_aliveDuration -= p_time;
     else
         deleteThis = true;
 
-    if(m_effIndex < 4)
+    // have radius and work as persistent effect
+    if (m_radius)
     {
-        if(m_updateTimer < p_time)
-        {
-            Trinity::DynamicObjectUpdater notifier(*this,caster);
-            VisitNearbyObject(GetRadius(), notifier);
-            m_updateTimer = 500; // is this official-like?
-        }else m_updateTimer -= p_time;
+        // TODO: make a timer and update this in larger intervals
+        MaNGOS::DynamicObjectUpdater notifier(*this, caster, m_positive);
+        Cell::VisitAllObjects(this, notifier, m_radius);
     }
 
-    if(deleteThis)
+    if (deleteThis)
     {
-        caster->RemoveDynObjectWithGUID(GetGUID());
+        caster->RemoveDynObjectWithGUID(GetObjectGuid());
         Delete();
     }
 }
 
 void DynamicObject::Delete()
 {
-    SendObjectDeSpawnAnim(GetGUID());
+    SendObjectDeSpawnAnim(GetObjectGuid());
     AddObjectToRemoveList();
 }
 
 void DynamicObject::Delay(int32 delaytime)
 {
     m_aliveDuration -= delaytime;
-    for(AffectedSet::iterator iunit= m_affected.begin();iunit != m_affected.end();++iunit)
-        if (*iunit)
-            (*iunit)->DelayAura(m_spellId, m_effIndex, delaytime);
+    for (GuidSet::iterator iter = m_affected.begin(); iter != m_affected.end();)
+    {
+        Unit* target = GetMap()->GetUnit((*iter));
+        if (target)
+        {
+            SpellAuraHolder* holder = target->GetSpellAuraHolder(m_spellId, GetCasterGuid());
+            if (!holder)
+            {
+                ++iter;
+                continue;
+            }
+
+            bool foundAura = false;
+            for (int32 i = m_effIndex + 1; i < MAX_EFFECT_INDEX; ++i)
+            {
+                if ((holder->GetSpellProto()->Effect[i] == SPELL_EFFECT_PERSISTENT_AREA_AURA || holder->GetSpellProto()->Effect[i] == SPELL_EFFECT_ADD_FARSIGHT) && holder->m_auras[i])
+                {
+                    foundAura = true;
+                    break;
+                }
+            }
+
+            if (foundAura)
+            {
+                ++iter;
+                continue;
+            }
+
+            target->DelaySpellAuraHolder(m_spellId, delaytime, GetCasterGuid());
+            ++iter;
+        }
+        else
+            m_affected.erase(iter++);
+    }
 }
 
-bool DynamicObject::isVisibleForInState(Player const* u, bool inVisibleList) const
+bool DynamicObject::isVisibleForInState(Player const* u, WorldObject const* viewPoint, bool inVisibleList) const
 {
-    return IsInWorld() && u->IsInWorld()
-        && (IsWithinDistInMap(u,World::GetMaxVisibleDistanceForObject()+(inVisibleList ? World::GetVisibleObjectGreyDistance() : 0.0f), false)
-        || GetCasterGUID() == u->GetGUID());
+    if (!IsInWorld() || !u->IsInWorld())
+        return false;
+
+    // always seen by owner
+    if (GetCasterGuid() == u->GetObjectGuid())
+        return true;
+
+    // normal case
+    return IsWithinDistInMap(viewPoint, GetMap()->GetVisibilityDistance() + (inVisibleList ? World::GetVisibleObjectGreyDistance() : 0.0f), false);
 }
 
+bool DynamicObject::IsHostileTo(Unit const* unit) const
+{
+    if (Unit* owner = GetCaster())
+        return owner->IsHostileTo(unit);
+    else
+        return false;
+}
+
+bool DynamicObject::IsFriendlyTo(Unit const* unit) const
+{
+    if (Unit* owner = GetCaster())
+        return owner->IsFriendlyTo(unit);
+    else
+        return true;
+}

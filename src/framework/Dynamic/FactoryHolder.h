@@ -1,7 +1,5 @@
-/*
- * Copyright (C) 2005-2008 MaNGOS <http://www.mangosproject.org/>
- *
- * Copyright (C) 2008 Trinity <http://www.trinitycore.org/>
+/**
+ * This code is part of MaNGOS. Contributor & Copyright details are in AUTHORS/THANKS.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -10,30 +8,30 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef TRINITY_FACTORY_HOLDER
-#define TRINITY_FACTORY_HOLDER
+#ifndef MANGOS_FACTORY_HOLDER
+#define MANGOS_FACTORY_HOLDER
 
 #include "Platform/Define.h"
 #include "Utilities/TypeList.h"
 #include "ObjectRegistry.h"
-#include "Policies/SingletonImp.h"
+#include "Policies/Singleton.h"
 
 /** FactoryHolder holds a factory object of a specific type
  */
-template<class T, class Key = std::string>
-class TRINITY_DLL_DECL FactoryHolder
+template < class T, class Key = std::string >
+class MANGOS_DLL_DECL FactoryHolder
 {
     public:
         typedef ObjectRegistry<FactoryHolder<T, Key >, Key > FactoryHolderRegistry;
-        typedef Trinity::Singleton<FactoryHolderRegistry > FactoryHolderRepository;
+        typedef MaNGOS::Singleton<FactoryHolderRegistry > FactoryHolderRepository;
 
         FactoryHolder(Key k) : i_key(k) {}
         virtual ~FactoryHolder() {}
@@ -43,7 +41,7 @@ class TRINITY_DLL_DECL FactoryHolder
         void DeregisterSelf(void) { FactoryHolderRepository::Instance().RemoveItem(this, false); }
 
         /// Abstract Factory create method
-        virtual T* Create(void *data = NULL) const = 0;
+        virtual T* Create(void* data = NULL) const = 0;
     private:
         Key i_key;
 };
@@ -57,7 +55,6 @@ class Permissible
 {
     public:
         virtual ~Permissible() {}
-        virtual int Permit(const T *) const = 0;
+        virtual int Permit(const T*) const = 0;
 };
 #endif
-

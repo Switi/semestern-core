@@ -37,7 +37,8 @@
 #define LIBMPQ_PKZIP_CMP_ABORT      4
 
 /* Compression structure (size: 12596 bytes on x86-32) */
-typedef struct {
+typedef struct
+{
     unsigned long   offs0000;       /* 0000 */
     unsigned long   cmp_type;       /* 0004 - Compression type (LIBMPQ_PZIP_CMP_BINARY or LIBMPQ_PKZIP_CMP_ASCII) */
     unsigned long   out_pos;        /* 0008 - Position in output buffer */
@@ -47,9 +48,9 @@ typedef struct {
     unsigned long   extra_bits;     /* 0018 - Number of extra (above 8) bits in bit buffer */
     unsigned int    in_pos;         /* 001C - Position in in_buf */
     unsigned long   in_bytes;       /* 0020 - Number of bytes in input buffer */
-    void        *param;         /* 0024 - Custom parameter */
-    unsigned int    (*read_buf)(char *buf, unsigned  int *size, void *param);   /* 0028 */
-    void        (*write_buf)(char *buf, unsigned  int *size, void *param);  /* 002C */
+    void*        param;         /* 0024 - Custom parameter */
+    unsigned int (*read_buf)(char* buf, unsigned  int* size, void* param);      /* 0028 */
+    void (*write_buf)(char* buf, unsigned  int* size, void* param);         /* 002C */
     unsigned char   out_buf[0x2000];    /* 0030 - Output circle buffer. Starting position is 0x1000 */
     unsigned char   offs_2030[0x204];   /* 2030 - ??? */
     unsigned char   in_buf[0x800];      /* 2234 - Buffer for data to be decompressed */
@@ -67,21 +68,21 @@ typedef struct {
 } pkzip_data_cmp;
 // __attribute__ ((packed)) pkzip_data_cmp;
 
-typedef struct {
-    char        *in_buf;    /* Pointer to input data buffer */
+typedef struct
+{
+    char*        in_buf;    /* Pointer to input data buffer */
     unsigned int    in_pos;     /* Current offset in input data buffer */
     int     in_bytes;   /* Number of bytes in the input buffer */
-    char        *out_buf;   /* Pointer to output data buffer */
+    char*        out_buf;   /* Pointer to output data buffer */
     unsigned int    out_pos;    /* Position in the output buffer */
     int     max_out;    /* Maximum number of bytes in the output buffer */
 } pkzip_data;
 
 extern unsigned int libmpq_pkzip_explode(
-    unsigned int    (*read_buf)(char *buf, unsigned int *size, void *param),
-    void        (*write_buf)(char *buf, unsigned int *size, void *param),
-    char        *work_buf,
-    void        *param
+    unsigned int (*read_buf)(char* buf, unsigned int* size, void* param),
+    void (*write_buf)(char* buf, unsigned int* size, void* param),
+    char*        work_buf,
+    void*        param
 );
 
 #endif                  /* _EXPLODE_H */
-

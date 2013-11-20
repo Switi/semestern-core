@@ -30,38 +30,45 @@
 #include "explode.h"
 
 /* Tables */
-static unsigned char pkzip_dist_bits[] = {
+static unsigned char pkzip_dist_bits[] =
+{
     0x02, 0x04, 0x04, 0x05, 0x05, 0x05, 0x05, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06,
     0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07,
     0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07,
     0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08
 };
 
-static unsigned char pkzip_dist_code[] = {
+static unsigned char pkzip_dist_code[] =
+{
     0x03, 0x0D, 0x05, 0x19, 0x09, 0x11, 0x01, 0x3E, 0x1E, 0x2E, 0x0E, 0x36, 0x16, 0x26, 0x06, 0x3A,
     0x1A, 0x2A, 0x0A, 0x32, 0x12, 0x22, 0x42, 0x02, 0x7C, 0x3C, 0x5C, 0x1C, 0x6C, 0x2C, 0x4C, 0x0C,
     0x74, 0x34, 0x54, 0x14, 0x64, 0x24, 0x44, 0x04, 0x78, 0x38, 0x58, 0x18, 0x68, 0x28, 0x48, 0x08,
     0xF0, 0x70, 0xB0, 0x30, 0xD0, 0x50, 0x90, 0x10, 0xE0, 0x60, 0xA0, 0x20, 0xC0, 0x40, 0x80, 0x00
 };
 
-static unsigned char pkzip_clen_bits[] = {
+static unsigned char pkzip_clen_bits[] =
+{
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08
 };
 
-static unsigned short pkzip_len_base[] = {
+static unsigned short pkzip_len_base[] =
+{
     0x0000, 0x0001, 0x0002, 0x0003, 0x0004, 0x0005, 0x0006, 0x0007,
     0x0008, 0x000A, 0x000E, 0x0016, 0x0026, 0x0046, 0x0086, 0x0106
 };
 
-static unsigned char pkzip_slen_bits[] = {
+static unsigned char pkzip_slen_bits[] =
+{
     0x03, 0x02, 0x03, 0x03, 0x04, 0x04, 0x04, 0x05, 0x05, 0x05, 0x05, 0x06, 0x06, 0x06, 0x07, 0x07
 };
 
-static unsigned char pkzip_len_code[] = {
+static unsigned char pkzip_len_code[] =
+{
     0x05, 0x03, 0x01, 0x06, 0x0A, 0x02, 0x0C, 0x14, 0x04, 0x18, 0x08, 0x30, 0x10, 0x20, 0x40, 0x00
 };
 
-static unsigned char pkzip_bits_asc[] = {
+static unsigned char pkzip_bits_asc[] =
+{
     0x0B, 0x0C, 0x0C, 0x0C, 0x0C, 0x0C, 0x0C, 0x0C, 0x0C, 0x08, 0x07, 0x0C, 0x0C, 0x07, 0x0C, 0x0C,
     0x0C, 0x0C, 0x0C, 0x0C, 0x0C, 0x0C, 0x0C, 0x0C, 0x0C, 0x0C, 0x0D, 0x0C, 0x0C, 0x0C, 0x0C, 0x0C,
     0x04, 0x0A, 0x08, 0x0C, 0x0A, 0x0C, 0x0A, 0x08, 0x07, 0x07, 0x08, 0x09, 0x07, 0x06, 0x07, 0x08,
@@ -80,7 +87,8 @@ static unsigned char pkzip_bits_asc[] = {
     0x0D, 0x0D, 0x0C, 0x0C, 0x0C, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D
 };
 
-static unsigned short pkzip_code_asc[] = {
+static unsigned short pkzip_code_asc[] =
+{
     0x0490, 0x0FE0, 0x07E0, 0x0BE0, 0x03E0, 0x0DE0, 0x05E0, 0x09E0,
     0x01E0, 0x00B8, 0x0062, 0x0EE0, 0x06E0, 0x0022, 0x0AE0, 0x02E0,
     0x0CE0, 0x04E0, 0x08E0, 0x00E0, 0x0F60, 0x0760, 0x0B60, 0x0360,
@@ -123,66 +131,89 @@ static char copyright[] = "PKWARE Data Compression Library for Win32\r\n"
                           "Version 1.11\r\n";
 
 /* Local functions */
-static void libmpq_pkzip_gen_decode_tabs(long count, unsigned char *bits, unsigned char *code, unsigned char *buf2) {
+static void libmpq_pkzip_gen_decode_tabs(long count, unsigned char* bits, unsigned char* code, unsigned char* buf2)
+{
     long i;
 
-    for (i = count-1; i >= 0; i--) {        /* EBX - count */
+    for (i = count - 1; i >= 0; i--)        /* EBX - count */
+    {
         unsigned long idx1 = code[i];
         unsigned long idx2 = 1 << bits[i];
-        do {
+        do
+        {
             buf2[idx1] = (unsigned char)i;
             idx1      += idx2;
-        } while (idx1 < 0x100);
+        }
+        while (idx1 < 0x100);
     }
 }
 
-static void libmpq_pkzip_gen_asc_tabs(pkzip_data_cmp *mpq_pkzip) {
-    unsigned short *code_asc = &pkzip_code_asc[0xFF];
+static void libmpq_pkzip_gen_asc_tabs(pkzip_data_cmp* mpq_pkzip)
+{
+    unsigned short* code_asc = &pkzip_code_asc[0xFF];
     unsigned long acc, add;
     unsigned short count;
 
-    for (count = 0x00FF; code_asc >= pkzip_code_asc; code_asc--, count--) {
-        unsigned char *bits_asc = mpq_pkzip->bits_asc + count;
+    for (count = 0x00FF; code_asc >= pkzip_code_asc; code_asc--, count--)
+    {
+        unsigned char* bits_asc = mpq_pkzip->bits_asc + count;
         unsigned char bits_tmp = *bits_asc;
 
-        if (bits_tmp <= 8) {
+        if (bits_tmp <= 8)
+        {
             add = (1 << bits_tmp);
             acc = *code_asc;
-            do {
+            do
+            {
                 mpq_pkzip->offs_2c34[acc] = (unsigned char)count;
                 acc += add;
-            } while (acc < 0x100);
-        } else {
-            if ((acc = (*code_asc & 0xFF)) != 0) {
+            }
+            while (acc < 0x100);
+        }
+        else
+        {
+            if ((acc = (*code_asc & 0xFF)) != 0)
+            {
                 mpq_pkzip->offs_2c34[acc] = 0xFF;
-                if (*code_asc & 0x3F) {
+                if (*code_asc & 0x3F)
+                {
                     bits_tmp -= 4;
                     *bits_asc = bits_tmp;
                     add = (1 << bits_tmp);
                     acc = *code_asc >> 4;
-                    do {
+                    do
+                    {
                         mpq_pkzip->offs_2d34[acc] = (unsigned char)count;
                         acc += add;
-                    } while (acc < 0x100);
-                } else {
+                    }
+                    while (acc < 0x100);
+                }
+                else
+                {
                     bits_tmp -= 6;
                     *bits_asc = bits_tmp;
                     add = (1 << bits_tmp);
                     acc = *code_asc >> 6;
-                    do {
+                    do
+                    {
                         mpq_pkzip->offs_2e34[acc] = (unsigned char)count;
                         acc += add;
-                    } while (acc < 0x80);
+                    }
+                    while (acc < 0x80);
                 }
-            } else {
+            }
+            else
+            {
                 bits_tmp -= 8;
                 *bits_asc = bits_tmp;
                 add = (1 << bits_tmp);
                 acc = *code_asc >> 8;
-                do {
+                do
+                {
                     mpq_pkzip->offs_2eb4[acc] = (unsigned char)count;
                     acc += add;
-                } while (acc < 0x100);
+                }
+                while (acc < 0x100);
             }
         }
     }
@@ -192,9 +223,11 @@ static void libmpq_pkzip_gen_asc_tabs(pkzip_data_cmp *mpq_pkzip) {
  *  Skips given number of bits in bit buffer. Result is stored in mpq_pkzip->bit_buf
  *  If no data in input buffer, returns true
  */
-static int libmpq_pkzip_skip_bits(pkzip_data_cmp *mpq_pkzip, unsigned long bits) {
+static int libmpq_pkzip_skip_bits(pkzip_data_cmp* mpq_pkzip, unsigned long bits)
+{
     /* If number of bits required is less than number of (bits in the buffer) ? */
-    if (bits <= mpq_pkzip->extra_bits) {
+    if (bits <= mpq_pkzip->extra_bits)
+    {
         mpq_pkzip->extra_bits -= bits;
         mpq_pkzip->bit_buf >>= bits;
         return 0;
@@ -202,9 +235,11 @@ static int libmpq_pkzip_skip_bits(pkzip_data_cmp *mpq_pkzip, unsigned long bits)
 
     /* Load input buffer if necessary */
     mpq_pkzip->bit_buf >>= mpq_pkzip->extra_bits;
-    if (mpq_pkzip->in_pos == mpq_pkzip->in_bytes) {
+    if (mpq_pkzip->in_pos == mpq_pkzip->in_bytes)
+    {
         mpq_pkzip->in_pos = sizeof(mpq_pkzip->in_buf);
-        if ((mpq_pkzip->in_bytes = mpq_pkzip->read_buf((char *)mpq_pkzip->in_buf, &mpq_pkzip->in_pos, mpq_pkzip->param)) == 0) {
+        if ((mpq_pkzip->in_bytes = mpq_pkzip->read_buf((char*)mpq_pkzip->in_buf, &mpq_pkzip->in_pos, mpq_pkzip->param)) == 0)
+        {
             return 1;
         }
         mpq_pkzip->in_pos = 0;
@@ -223,15 +258,18 @@ static int libmpq_pkzip_skip_bits(pkzip_data_cmp *mpq_pkzip, unsigned long bits)
  *           0x100 - 0x305 : Copy previous block (0x100 = 1 byte)
  *           0x306         : Out of buffer (?)
  */
-static unsigned long libmpq_pkzip_explode_lit(pkzip_data_cmp *mpq_pkzip) {
+static unsigned long libmpq_pkzip_explode_lit(pkzip_data_cmp* mpq_pkzip)
+{
     unsigned long bits;             /* Number of bits to skip */
     unsigned long value;                /* Position in buffers */
 
     /* Test the current bit in byte buffer. If is not set, simply return the next byte. */
-    if (mpq_pkzip->bit_buf & 1) {
+    if (mpq_pkzip->bit_buf & 1)
+    {
 
         /* Skip current bit in the buffer. */
-        if (libmpq_pkzip_skip_bits(mpq_pkzip, 1)) {
+        if (libmpq_pkzip_skip_bits(mpq_pkzip, 1))
+        {
             return 0x306;
         }
 
@@ -239,13 +277,17 @@ static unsigned long libmpq_pkzip_explode_lit(pkzip_data_cmp *mpq_pkzip) {
         value = mpq_pkzip->pos2[(mpq_pkzip->bit_buf & 0xFF)];
 
         /* Get number of bits to skip */
-        if (libmpq_pkzip_skip_bits(mpq_pkzip, mpq_pkzip->slen_bits[value])) {
+        if (libmpq_pkzip_skip_bits(mpq_pkzip, mpq_pkzip->slen_bits[value]))
+        {
             return 0x306;
         }
-        if ((bits = mpq_pkzip->clen_bits[value]) != 0) {
+        if ((bits = mpq_pkzip->clen_bits[value]) != 0)
+        {
             unsigned long val2 = mpq_pkzip->bit_buf & ((1 << bits) - 1);
-            if (libmpq_pkzip_skip_bits(mpq_pkzip, bits)) {
-                if ((value + val2) != 0x10E) {
+            if (libmpq_pkzip_skip_bits(mpq_pkzip, bits))
+            {
+                if ((value + val2) != 0x10E)
+                {
                     return 0x306;
                 }
             }
@@ -255,37 +297,50 @@ static unsigned long libmpq_pkzip_explode_lit(pkzip_data_cmp *mpq_pkzip) {
     }
 
     /* Skip one bit */
-    if (libmpq_pkzip_skip_bits(mpq_pkzip, 1)) {
+    if (libmpq_pkzip_skip_bits(mpq_pkzip, 1))
+    {
         return 0x306;
     }
 
     /* If the binary compression type, read 8 bits and return them as one byte. */
-    if (mpq_pkzip->cmp_type == LIBMPQ_PKZIP_CMP_BINARY) {
+    if (mpq_pkzip->cmp_type == LIBMPQ_PKZIP_CMP_BINARY)
+    {
         value = mpq_pkzip->bit_buf & 0xFF;
-        if (libmpq_pkzip_skip_bits(mpq_pkzip, 8)) {
+        if (libmpq_pkzip_skip_bits(mpq_pkzip, 8))
+        {
             return 0x306;
         }
         return value;
     }
 
     /* When ASCII compression ... */
-    if (mpq_pkzip->bit_buf & 0xFF) {
+    if (mpq_pkzip->bit_buf & 0xFF)
+    {
         value = mpq_pkzip->offs_2c34[mpq_pkzip->bit_buf & 0xFF];
-        if (value == 0xFF) {
-            if (mpq_pkzip->bit_buf & 0x3F) {
-                if (libmpq_pkzip_skip_bits(mpq_pkzip, 4)) {
+        if (value == 0xFF)
+        {
+            if (mpq_pkzip->bit_buf & 0x3F)
+            {
+                if (libmpq_pkzip_skip_bits(mpq_pkzip, 4))
+                {
                     return 0x306;
                 }
                 value = mpq_pkzip->offs_2d34[mpq_pkzip->bit_buf & 0xFF];
-            } else {
-                if (libmpq_pkzip_skip_bits(mpq_pkzip, 6)) {
+            }
+            else
+            {
+                if (libmpq_pkzip_skip_bits(mpq_pkzip, 6))
+                {
                     return 0x306;
                 }
                 value = mpq_pkzip->offs_2e34[mpq_pkzip->bit_buf & 0x7F];
             }
         }
-    } else {
-        if (libmpq_pkzip_skip_bits(mpq_pkzip, 8)) {
+    }
+    else
+    {
+        if (libmpq_pkzip_skip_bits(mpq_pkzip, 8))
+        {
             return 0x306;
         }
         value = mpq_pkzip->offs_2eb4[mpq_pkzip->bit_buf & 0xFF];
@@ -296,31 +351,39 @@ static unsigned long libmpq_pkzip_explode_lit(pkzip_data_cmp *mpq_pkzip) {
 /*
  *  Retrieves the number of bytes to move back.
  */
-static unsigned long libmpq_pkzip_explode_dist(pkzip_data_cmp *mpq_pkzip, unsigned long length) {
+static unsigned long libmpq_pkzip_explode_dist(pkzip_data_cmp* mpq_pkzip, unsigned long length)
+{
     unsigned long pos  = mpq_pkzip->pos1[(mpq_pkzip->bit_buf & 0xFF)];
     unsigned long skip = mpq_pkzip->dist_bits[pos]; /* Number of bits to skip */
 
     /* Skip the appropriate number of bits */
-    if (libmpq_pkzip_skip_bits(mpq_pkzip, skip) == 1) {
+    if (libmpq_pkzip_skip_bits(mpq_pkzip, skip) == 1)
+    {
         return 0;
     }
-    if (length == 2) {
+    if (length == 2)
+    {
         pos = (pos << 2) | (mpq_pkzip->bit_buf & 0x03);
-        if (libmpq_pkzip_skip_bits(mpq_pkzip, 2) == 1) {
+        if (libmpq_pkzip_skip_bits(mpq_pkzip, 2) == 1)
+        {
             return 0;
         }
-    } else {
+    }
+    else
+    {
         pos = (pos << mpq_pkzip->dsize_bits) | (mpq_pkzip->bit_buf & mpq_pkzip->dsize_mask);
 
         /* Skip the bits */
-        if (libmpq_pkzip_skip_bits(mpq_pkzip, mpq_pkzip->dsize_bits) == 1) {
+        if (libmpq_pkzip_skip_bits(mpq_pkzip, mpq_pkzip->dsize_bits) == 1)
+        {
             return 0;
         }
     }
     return pos + 1;
 }
 
-static unsigned long libmpq_pkzip_expand(pkzip_data_cmp *mpq_pkzip) {
+static unsigned long libmpq_pkzip_expand(pkzip_data_cmp* mpq_pkzip)
+{
     unsigned int copy_bytes;            /* Number of bytes to copy */
     unsigned long one_byte;             /* One byte from compressed file */
     unsigned long result;
@@ -328,17 +391,20 @@ static unsigned long libmpq_pkzip_expand(pkzip_data_cmp *mpq_pkzip) {
     mpq_pkzip->out_pos = 0x1000;            /* Initialize output buffer position */
 
     /* If end of data or error, terminate decompress */
-    while ((result = one_byte = libmpq_pkzip_explode_lit(mpq_pkzip)) < 0x305) {
+    while ((result = one_byte = libmpq_pkzip_explode_lit(mpq_pkzip)) < 0x305)
+    {
 
         /* If one byte is greater than 0x100, means "Repeat n - 0xFE bytes" */
-        if (one_byte >= 0x100) {
-            unsigned char *source;      /* ECX */
-            unsigned char *target;      /* EDX */
+        if (one_byte >= 0x100)
+        {
+            unsigned char* source;      /* ECX */
+            unsigned char* target;      /* EDX */
             unsigned long copy_length = one_byte - 0xFE;
             unsigned long move_back;
 
             /* Get length of data to copy */
-            if ((move_back = libmpq_pkzip_explode_dist(mpq_pkzip, copy_length)) == 0) {
+            if ((move_back = libmpq_pkzip_explode_dist(mpq_pkzip, copy_length)) == 0)
+            {
                 result = 0x306;
                 break;
             }
@@ -347,10 +413,13 @@ static unsigned long libmpq_pkzip_expand(pkzip_data_cmp *mpq_pkzip) {
             target = &mpq_pkzip->out_buf[mpq_pkzip->out_pos];
             source = target - move_back;
             mpq_pkzip->out_pos += copy_length;
-            while (copy_length-- > 0) {
+            while (copy_length-- > 0)
+            {
                 *target++ = *source++;
             }
-        } else {
+        }
+        else
+        {
             mpq_pkzip->out_buf[mpq_pkzip->out_pos++] = (unsigned char)one_byte;
         }
 
@@ -358,11 +427,12 @@ static unsigned long libmpq_pkzip_expand(pkzip_data_cmp *mpq_pkzip) {
          * If number of extracted bytes has reached 1/2 of output buffer,
          * flush output buffer.
          */
-        if (mpq_pkzip->out_pos >= 0x2000) {
+        if (mpq_pkzip->out_pos >= 0x2000)
+        {
 
             /* Copy decompressed data into user buffer. */
             copy_bytes = 0x1000;
-            mpq_pkzip->write_buf((char *)&mpq_pkzip->out_buf[0x1000], &copy_bytes, mpq_pkzip->param);
+            mpq_pkzip->write_buf((char*)&mpq_pkzip->out_buf[0x1000], &copy_bytes, mpq_pkzip->param);
 
             /* If there are some data left, keep them alive */
             memcpy(mpq_pkzip->out_buf, &mpq_pkzip->out_buf[0x1000], mpq_pkzip->out_pos - 0x1000);
@@ -370,7 +440,7 @@ static unsigned long libmpq_pkzip_expand(pkzip_data_cmp *mpq_pkzip) {
         }
     }
     copy_bytes = mpq_pkzip->out_pos - 0x1000;
-    mpq_pkzip->write_buf((char *)&mpq_pkzip->out_buf[0x1000], &copy_bytes, mpq_pkzip->param);
+    mpq_pkzip->write_buf((char*)&mpq_pkzip->out_buf[0x1000], &copy_bytes, mpq_pkzip->param);
     return result;
 }
 
@@ -378,12 +448,13 @@ static unsigned long libmpq_pkzip_expand(pkzip_data_cmp *mpq_pkzip) {
  * Main exploding function.
  */
 unsigned int libmpq_pkzip_explode(
-    unsigned int    (*read_buf)(char *buf, unsigned  int *size, void *param),
-    void        (*write_buf)(char *buf, unsigned  int *size, void *param),
-    char        *work_buf,
-    void        *param) {
+    unsigned int (*read_buf)(char* buf, unsigned  int* size, void* param),
+    void (*write_buf)(char* buf, unsigned  int* size, void* param),
+    char*        work_buf,
+    void*        param)
+{
 
-    pkzip_data_cmp *mpq_pkzip = (pkzip_data_cmp *)work_buf;
+    pkzip_data_cmp* mpq_pkzip = (pkzip_data_cmp*)work_buf;
 
     /* Set the whole work buffer to zeros */
     memset(mpq_pkzip, 0, sizeof(pkzip_data_cmp));
@@ -393,8 +464,9 @@ unsigned int libmpq_pkzip_explode(
     mpq_pkzip->write_buf  = write_buf;
     mpq_pkzip->param      = param;
     mpq_pkzip->in_pos     = sizeof(mpq_pkzip->in_buf);
-    mpq_pkzip->in_bytes   = mpq_pkzip->read_buf((char *)mpq_pkzip->in_buf, &mpq_pkzip->in_pos, mpq_pkzip->param);
-    if (mpq_pkzip->in_bytes <= 4) {
+    mpq_pkzip->in_bytes   = mpq_pkzip->read_buf((char*)mpq_pkzip->in_buf, &mpq_pkzip->in_pos, mpq_pkzip->param);
+    if (mpq_pkzip->in_bytes <= 4)
+    {
         return LIBMPQ_PKZIP_CMP_BAD_DATA;
     }
     mpq_pkzip->cmp_type   = mpq_pkzip->in_buf[0];   /* Get the compression type */
@@ -404,12 +476,15 @@ unsigned int libmpq_pkzip_explode(
     mpq_pkzip->in_pos     = 3;          /* Position in input buffer */
 
     /* Test for the valid dictionary size */
-    if (4 > mpq_pkzip->dsize_bits || mpq_pkzip->dsize_bits > 6) {
+    if (4 > mpq_pkzip->dsize_bits || mpq_pkzip->dsize_bits > 6)
+    {
         return LIBMPQ_PKZIP_CMP_INV_DICTSIZE;
     }
     mpq_pkzip->dsize_mask = 0xFFFF >> (0x10 - mpq_pkzip->dsize_bits);   /* Shifted by 'sar' instruction */
-    if (mpq_pkzip->cmp_type != LIBMPQ_PKZIP_CMP_BINARY) {
-        if (mpq_pkzip->cmp_type != LIBMPQ_PKZIP_CMP_ASCII) {
+    if (mpq_pkzip->cmp_type != LIBMPQ_PKZIP_CMP_BINARY)
+    {
+        if (mpq_pkzip->cmp_type != LIBMPQ_PKZIP_CMP_ASCII)
+        {
             return LIBMPQ_PKZIP_CMP_INV_MODE;
         }
         memcpy(mpq_pkzip->bits_asc, pkzip_bits_asc, sizeof(mpq_pkzip->bits_asc));
@@ -421,9 +496,9 @@ unsigned int libmpq_pkzip_explode(
     memcpy(mpq_pkzip->len_base, pkzip_len_base, sizeof(mpq_pkzip->len_base));
     memcpy(mpq_pkzip->dist_bits, pkzip_dist_bits, sizeof(mpq_pkzip->dist_bits));
     libmpq_pkzip_gen_decode_tabs(0x40, mpq_pkzip->dist_bits, pkzip_dist_code, mpq_pkzip->pos1);
-    if (libmpq_pkzip_expand(mpq_pkzip) != 0x306) {
+    if (libmpq_pkzip_expand(mpq_pkzip) != 0x306)
+    {
         return LIBMPQ_PKZIP_CMP_NO_ERROR;
     }
     return LIBMPQ_PKZIP_CMP_ABORT;
 }
-

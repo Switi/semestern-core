@@ -1,7 +1,5 @@
-/*
- * Copyright (C) 2005-2008 MaNGOS <http://www.mangosproject.org/>
- *
- * Copyright (C) 2008 Trinity <http://www.trinitycore.org/>
+/**
+ * This code is part of MaNGOS. Contributor & Copyright details are in AUTHORS/THANKS.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -10,16 +8,16 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef TRINITYCORE_TOTEM_H
-#define TRINITYCORE_TOTEM_H
+#ifndef MANGOSSERVER_TOTEM_H
+#define MANGOSSERVER_TOTEM_H
 
 #include "Creature.h"
 
@@ -30,38 +28,36 @@ enum TotemType
     TOTEM_STATUE     = 2
 };
 
-#define SENTRY_TOTEM_ENTRY  3968
-
 class Totem : public Creature
 {
     public:
         explicit Totem();
-        virtual ~Totem(){};
-        void Update( uint32 time );
+        virtual ~Totem() {};
+        bool Create(uint32 guidlow, CreatureCreatePos& cPos, CreatureInfo const* cinfo, Unit* owner);
+        void Update(uint32 update_diff, uint32 time) override;
         void Summon(Unit* owner);
         void UnSummon();
         uint32 GetSpell() const { return m_spells[0]; }
         uint32 GetTotemDuration() const { return m_duration; }
-        Unit *GetOwner();
+        Unit* GetOwner();
         TotemType GetTotemType() const { return m_type; }
-        void SetTypeBySummonSpell(SpellEntry const * spellProto);
+        void SetTypeBySummonSpell(SpellEntry const* spellProto);
         void SetDuration(uint32 dur) { m_duration = dur; }
-        void SetOwner(uint64 guid);
+        void SetOwner(Unit* owner);
 
-        bool UpdateStats(Stats /*stat*/) { return true; }
-        bool UpdateAllStats() { return true; }
-        void UpdateResistances(uint32 /*school*/) {}
-        void UpdateArmor() {}
-        void UpdateMaxHealth() {}
-        void UpdateMaxPower(Powers /*power*/) {}
-        void UpdateAttackPowerAndDamage(bool /*ranged*/ ) {}
-        void UpdateDamagePhysical(WeaponAttackType /*attType*/) {}
+        bool UpdateStats(Stats /*stat*/) override { return true; }
+        bool UpdateAllStats() override { return true; }
+        void UpdateResistances(uint32 /*school*/) override {}
+        void UpdateArmor() override {}
+        void UpdateMaxHealth() override {}
+        void UpdateMaxPower(Powers /*power*/) override {}
+        void UpdateAttackPowerAndDamage(bool /*ranged*/) override {}
+        void UpdateDamagePhysical(WeaponAttackType /*attType*/) override {}
 
-        bool IsImmunedToSpell(SpellEntry const* spellInfo, bool useCharges = false);
+        bool IsImmuneToSpellEffect(SpellEntry const* spellInfo, SpellEffectIndex index, bool castOnSelf) const override;
 
     protected:
         TotemType m_type;
         uint32 m_duration;
 };
 #endif
-

@@ -1,7 +1,5 @@
-/*
- * Copyright (C) 2005-2008 MaNGOS <http://www.mangosproject.org/>
- *
- * Copyright (C) 2008 Trinity <http://www.trinitycore.org/>
+/**
+ * This code is part of MaNGOS. Contributor & Copyright details are in AUTHORS/THANKS.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -10,23 +8,69 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef TRINITYCORE_ERRORS_H
-#define TRINITYCORE_ERRORS_H
+#ifndef MANGOSSERVER_ERRORS_H
+#define MANGOSSERVER_ERRORS_H
 
-#define WPAssert( assertion ) { if( !(assertion) ) { fprintf( stderr, "\n%s:%i ASSERTION FAILED:\n  %s\n", __FILE__, __LINE__, #assertion ); assert( #assertion &&0 ); } }
-#define WPError( assertion, errmsg ) if( ! (assertion) ) { sLog.outError( "%s:%i ERROR:\n  %s\n", __FILE__, __LINE__, (char *)errmsg ); assert( false ); }
-#define WPWarning( assertion, errmsg ) if( ! (assertion) ) { sLog.outError( "%s:%i WARNING:\n  %s\n", __FILE__, __LINE__, (char *)errmsg ); }
+#include "Common.h"
 
-#define WPFatal( assertion, errmsg ) if( ! (assertion) ) { sLog.outError( "%s:%i FATAL ERROR:\n  %s\n", __FILE__, __LINE__, (char *)errmsg ); assert( #assertion &&0 ); abort(); }
-
-#define ASSERT WPAssert
+#ifndef HAVE_CONFIG_H
+#  define HAVE_ACE_STACK_TRACE_H 1
 #endif
 
+#ifdef HAVE_ACE_STACK_TRACE_H
+#  include "ace/Stack_Trace.h"
+#endif
+
+#ifdef HAVE_ACE_STACK_TRACE_H
+// Normal assert.
+#define WPError(CONDITION) \
+if (!(CONDITION)) \
+{ \
+    ACE_Stack_Trace st; \
+    printf("%s:%i: Error: Assertion in %s failed: %s\nStack Trace:\n%s", \
+        __FILE__, __LINE__, __FUNCTION__, STRINGIZE(CONDITION), st.c_str()); \
+    assert(STRINGIZE(CONDITION) && 0); \
+}
+
+// Just warn.
+#define WPWarning(CONDITION) \
+if (!(CONDITION)) \
+{ \
+    ACE_Stack_Trace st; \
+    printf("%s:%i: Warning: Assertion in %s failed: %s\nStack Trace:\n%s",\
+        __FILE__, __LINE__, __FUNCTION__, STRINGIZE(CONDITION), st.c_str()); \
+}
+#else
+// Normal assert.
+#define WPError(CONDITION) \
+if (!(CONDITION)) \
+{ \
+    printf("%s:%i: Error: Assertion in %s failed: %s", \
+        __FILE__, __LINE__, __FUNCTION__, STRINGIZE(CONDITION)); \
+    assert(STRINGIZE(CONDITION) && 0); \
+}
+
+// Just warn.
+#define WPWarning(CONDITION) \
+if (!(CONDITION)) \
+{ \
+    printf("%s:%i: Warning: Assertion in %s failed: %s",\
+        __FILE__, __LINE__, __FUNCTION__, STRINGIZE(CONDITION)); \
+}
+#endif
+
+#ifdef MANGOS_DEBUG
+#  define MANGOS_ASSERT WPError
+#else
+#  define MANGOS_ASSERT WPError                             // Error even if in release mode.
+#endif
+
+#endif

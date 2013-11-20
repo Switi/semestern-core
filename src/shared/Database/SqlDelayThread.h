@@ -1,7 +1,5 @@
-/*
- * Copyright (C) 2005-2008 MaNGOS <http://www.mangosproject.org/>
- *
- * Copyright (C) 2008 Trinity <http://www.trinitycore.org/>
+/**
+ * This code is part of MaNGOS. Contributor & Copyright details are in AUTHORS/THANKS.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,33 +19,35 @@
 #ifndef __SQLDELAYTHREAD_H
 #define __SQLDELAYTHREAD_H
 
-#include "zthread/Thread.h"
-#include "zthread/Runnable.h"
-#include "zthread/FastMutex.h"
-#include "zthread/MonitoredQueue.h"
+#include "ace/Thread_Mutex.h"
+#include "LockedQueue.h"
+#include "Threading.h"
 
 class Database;
 class SqlOperation;
+class SqlConnection;
 
-
-
-class SqlDelayThread : public ZThread::Runnable
+class SqlDelayThread : public ACE_Based::Runnable
 {
-typedef ZThread::MonitoredQueue<SqlOperation*, ZThread::FastMutex> SqlQueue;
+        typedef ACE_Based::LockedQueue<SqlOperation*, ACE_Thread_Mutex> SqlQueue;
+
     private:
         SqlQueue m_sqlQueue;                                ///< Queue of SQL statements
         Database* m_dbEngine;                               ///< Pointer to used Database engine
-        bool m_running;
+        SqlConnection* m_dbConnection;                      ///< Pointer to DB connection
+        volatile bool m_running;
 
-        SqlDelayThread();
+        // process all enqueued requests
+        void ProcessRequests();
+
     public:
-        SqlDelayThread(Database* db,const char* infoString);
+        SqlDelayThread(Database* db, SqlConnection* conn);
+        ~SqlDelayThread();
 
         ///< Put sql statement to delay queue
-        inline bool Delay(SqlOperation* sql) { m_sqlQueue.add(sql); return true; }
+        bool Delay(SqlOperation* sql) { m_sqlQueue.add(sql); return true; }
 
         virtual void Stop();                                ///< Stop event
         virtual void run();                                 ///< Main Thread loop
 };
 #endif                                                      //__SQLDELAYTHREAD_H
-

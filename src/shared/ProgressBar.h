@@ -1,7 +1,5 @@
-/*
- * Copyright (C) 2005-2008 MaNGOS <http://www.mangosproject.org/>
- *
- * Copyright (C) 2008 Trinity <http://www.trinitycore.org/>
+/**
+ * This code is part of MaNGOS. Contributor & Copyright details are in AUTHORS/THANKS.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,27 +15,33 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
-#ifndef TRINITYCORE_PROGRESSBAR_H
-#define TRINITYCORE_PROGRESSBAR_H
+#ifndef MANGOSSERVER_PROGRESSBAR_H
+#define MANGOSSERVER_PROGRESSBAR_H
 
-#include <stdio.h>
 #include "Platform/Define.h"
 
-class TRINITY_DLL_SPEC barGoLink
+class MANGOS_DLL_SPEC BarGoLink
 {
-    static char const * const empty;
-    static char const * const full;
+    public:                                                 // constructors
+        explicit BarGoLink(int row_count);
+        explicit BarGoLink(uint32 row_count);               // row_count < ACE_INT32_MAX
+        explicit BarGoLink(uint64 row_count);               // row_count < ACE_INT32_MAX
+        ~BarGoLink();
 
-    int rec_no;
-    int rec_pos;
-    int num_rec;
-    int indic_len;
+    public:                                                 // modifiers
+        void step();
 
-    public:
+        static void SetOutputState(bool on);
+    private:
+        void init(int row_count);
 
-        void step( void );
-        barGoLink( int );
-        ~barGoLink();
+        static bool m_showOutput;                           // not recommended change with existed active bar
+        static char const* const empty;
+        static char const* const full;
+
+        int rec_no;
+        int rec_pos;
+        int num_rec;
+        int indic_len;
 };
 #endif
-

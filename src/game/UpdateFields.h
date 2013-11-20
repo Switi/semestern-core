@@ -1,7 +1,5 @@
-/*
- * Copyright (C) 2005-2008 MaNGOS <http://www.mangosproject.org/>
- *
- * Copyright (C) 2008 Trinity <http://www.trinitycore.org/>
+/**
+ * This code is part of MaNGOS. Contributor & Copyright details are in AUTHORS/THANKS.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -10,12 +8,12 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
 #ifndef _UPDATEFIELDS_AUTO_H
@@ -43,7 +41,7 @@ enum EItemFields
     ITEM_FIELD_DURATION                       = OBJECT_END + 0x0009, // Size: 1, Type: INT, Flags: OWNER_ONLY, UNK2
     ITEM_FIELD_SPELL_CHARGES                  = OBJECT_END + 0x000A, // Size: 5, Type: INT, Flags: OWNER_ONLY, UNK2
     ITEM_FIELD_FLAGS                          = OBJECT_END + 0x000F, // Size: 1, Type: INT, Flags: PUBLIC
-    ITEM_FIELD_ENCHANTMENT                    = OBJECT_END + 0x0010, // Size: 33, Type: INT, Flags: PUBLIC
+    ITEM_FIELD_ENCHANTMENT_1_1                = OBJECT_END + 0x0010, // Size: 33, Type: INT, Flags: PUBLIC
     ITEM_FIELD_PROPERTY_SEED                  = OBJECT_END + 0x0031, // Size: 1, Type: INT, Flags: PUBLIC
     ITEM_FIELD_RANDOM_PROPERTIES_ID           = OBJECT_END + 0x0032, // Size: 1, Type: INT, Flags: PUBLIC
     ITEM_FIELD_ITEM_TEXT_ID                   = OBJECT_END + 0x0033, // Size: 1, Type: INT, Flags: OWNER_ONLY
@@ -383,7 +381,7 @@ enum EUnitFields
     PLAYER_FIELD_KILLS                        = UNIT_END + 0x0500, // Size: 1, Type: TWO_SHORT, Flags: PRIVATE
     PLAYER_FIELD_TODAY_CONTRIBUTION           = UNIT_END + 0x0501, // Size: 1, Type: INT, Flags: PRIVATE
     PLAYER_FIELD_YESTERDAY_CONTRIBUTION       = UNIT_END + 0x0502, // Size: 1, Type: INT, Flags: PRIVATE
-    PLAYER_FIELD_LIFETIME_HONORABLE_KILLS     = UNIT_END + 0x0503, // Size: 1, Type: INT, Flags: PRIVATE
+    PLAYER_FIELD_LIFETIME_HONORBALE_KILLS     = UNIT_END + 0x0503, // Size: 1, Type: INT, Flags: PRIVATE
     PLAYER_FIELD_BYTES2                       = UNIT_END + 0x0504, // Size: 1, Type: BYTES, Flags: PRIVATE
     PLAYER_FIELD_WATCHED_FACTION_INDEX        = UNIT_END + 0x0505, // Size: 1, Type: INT, Flags: PRIVATE
     PLAYER_FIELD_COMBAT_RATING_1              = UNIT_END + 0x0506, // Size: 24, Type: INT, Flags: PRIVATE
@@ -451,4 +449,3 @@ enum ECorpseFields
     CORPSE_END                                = OBJECT_END + 0x0022,
 };
 #endif
-

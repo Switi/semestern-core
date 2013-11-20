@@ -1,7 +1,5 @@
-/*
- * Copyright (C) 2005-2008 MaNGOS <http://www.mangosproject.org/>
- *
- * Copyright (C) 2008 Trinity <http://www.trinitycore.org/>
+/**
+ * This code is part of MaNGOS. Contributor & Copyright details are in AUTHORS/THANKS.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -10,117 +8,111 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef TRINITY_INSTANCE_DATA_H
-#define TRINITY_INSTANCE_DATA_H
+#ifndef MANGOS_INSTANCE_DATA_H
+#define MANGOS_INSTANCE_DATA_H
 
 #include "Common.h"
-#include "GameObject.h"
-#include "Map.h"
+#include "ObjectGuid.h"
 
 class Map;
 class Unit;
 class Player;
 class GameObject;
 class Creature;
+class WorldObject;
 
-enum EncounterState
+enum InstanceConditionIDs                                   // Suggested values used with CONDITION_INSTANCE_SCRIPT for some generic uses
 {
-    NOT_STARTED   = 0,
-    IN_PROGRESS   = 1,
-    FAIL          = 2,
-    DONE          = 3,
-    SPECIAL       = 4
+    // for hard-mode loot (0 normal; 1,2... hard,harder... mode)
+    INSTANCE_CONDITION_ID_NORMAL_MODE       = 0,
+    INSTANCE_CONDITION_ID_HARD_MODE         = 1,
+    INSTANCE_CONDITION_ID_HARD_MODE_2       = 2,
+    INSTANCE_CONDITION_ID_HARD_MODE_3       = 3,
+    INSTANCE_CONDITION_ID_HARD_MODE_4       = 4,
+
+    // to check for which team the instance is doing scripts
+    INSTANCE_CONDITION_ID_TEAM_HORDE        = 67,
+    INSTANCE_CONDITION_ID_TEAM_ALLIANCE     = 469,
+
+    // to check water event in SSC
+    INSTANCE_CONDITION_ID_LURKER            = 21217,
+    INSTANCE_CONDITION_ID_SCALDING_WATER    = 37284,
 };
 
-typedef std::set<GameObject*> DoorSet;
-
-struct BossInfo
-{
-    BossInfo() : state(NOT_STARTED) {}
-    EncounterState state;
-    DoorSet roomDoor, passageDoor;
-};
-
-class TRINITY_DLL_SPEC InstanceData
+class MANGOS_DLL_SPEC InstanceData
 {
     public:
 
-        explicit InstanceData(Map *map) : instance(map) {}
+        explicit InstanceData(Map* map) : instance(map) {}
         virtual ~InstanceData() {}
 
-        Map *instance;
+        Map* instance;
 
-        //On creation, NOT load.
+        // On creation, NOT load.
         virtual void Initialize() {}
 
-        //On load
+        // On load
         virtual void Load(const char* /*data*/) {}
 
-        //When save is needed, this function generates the data
-        virtual const char* Save() { return ""; }
+        // When save is needed, this function generates the data
+        virtual const char* Save() const { return ""; }
 
-        void SaveToDB();
+        void SaveToDB() const;
 
-        //Called every map update
+        // Called every map update
         virtual void Update(uint32 /*diff*/) {}
 
-        //Used by the map's CanEnter function.
-        //This is to prevent players from entering during boss encounters.
-        virtual bool IsEncounterInProgress() const;
+        // This is to prevent players from entering during boss encounters.
+        virtual bool IsEncounterInProgress() const { return false; };
 
-        //Called when a player successfully enters the instance.
-        virtual void OnPlayerEnter(Player *) {}
+        // Called when a player successfully enters the instance (after really added to map)
+        virtual void OnPlayerEnter(Player*) {}
 
-        //Called when a gameobject is created
-        virtual void OnObjectCreate(GameObject *) {}
+        // Called when a player dies inside instance
+        virtual void OnPlayerDeath(Player*) {}
 
-        //called on creature creation
-        virtual void OnCreatureCreate(Creature * /*creature*/, uint32 /*creature_entry*/) {}
+        // Called when a player leaves the instance (before really removed from map (or possibly world))
+        virtual void OnPlayerLeave(Player*) {}
 
-        virtual void OnCreatureRemove(Creature*) {}
-        virtual void OnObjectRemove(GameObject*) {}
+        // Called when a gameobject is created
+        virtual void OnObjectCreate(GameObject*) {}
 
-        //All-purpose data storage 64 bit
-        virtual uint64 GetData64(uint32 /*DataId*/) { return 0; }
-        virtual void SetData64(uint32 /*DataId*/, uint64 /*Value*/) {}
+        // called on creature creation
+        virtual void OnCreatureCreate(Creature * /*creature*/) {}
 
+        // called on creature enter combat
+        virtual void OnCreatureEnterCombat(Creature * /*creature*/) {}
 
-        //All-purpose data storage 32 bit
-        virtual uint32 GetData(uint32) { return 0; }
-        virtual void SetData(uint32, uint32 data) {}
+        // called on creature evade
+        virtual void OnCreatureEvade(Creature * /*creature*/) {}
 
-        //Handle open / close objects
-        //use HandleGameObject(NULL,boolen,GO); in OnObjectCreate in instance scripts
-        //use HandleGameObject(GUID,boolen,NULL); in any other script
-        void HandleGameObject(uint64 GUID, bool open, GameObject *go = NULL);
+        // called on creature death
+        virtual void OnCreatureDeath(Creature * /*creature*/) {}
 
-    protected:
-        void AddBossRoomDoor(uint32 id, GameObject *door);
-        void AddBossPassageDoor(uint32 id, GameObject *door);
-        void RemoveBossRoomDoor(uint32 id, GameObject *door);
-        void RemoveBossPassageDoor(uint32 id, GameObject *door);
+        // All-purpose data storage 64 bit
+        virtual uint64 GetData64(uint32 /*Data*/) const { return 0; }
+        virtual void SetData64(uint32 /*Data*/, uint64 /*Value*/) { }
 
-        void SetBossState(uint32 id, EncounterState state);
+        // Guid data storage (wrapper for set/get from uint64 storage
+        ObjectGuid GetGuid(uint32 dataIdx) const { return ObjectGuid(GetData64(dataIdx)); }
+        void SetGuid(uint32 dataIdx, ObjectGuid value) { SetData64(dataIdx, value.GetRawValue()); }
 
-        std::string GetBossSave()
-        {
-            std::ostringstream saveStream;
-            for(std::vector<BossInfo>::iterator i = bosses.begin(); i != bosses.end(); ++i)
-                saveStream << (uint32)i->state << " ";
-            return saveStream.str();
-        }        
+        // All-purpose data storage 32 bit
+        virtual uint32 GetData(uint32 /*Type*/) const { return 0; }
+        virtual void SetData(uint32 /*Type*/, uint32 /*Data*/) {}
 
-    private:
-        std::vector<BossInfo> bosses;
-
+        // Condition criteria additional requirements check
+        // This is used for such things are heroic loot
+        // See ObjectMgr.h enum ConditionSource for possible values of conditionSourceType
+        virtual bool CheckConditionCriteriaMeet(Player const* source, uint32 instance_condition_id, WorldObject const* conditionSource, uint32 conditionSourceType) const;
 };
-#endif
 
+#endif

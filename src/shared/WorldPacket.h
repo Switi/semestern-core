@@ -1,7 +1,5 @@
-/*
- * Copyright (C) 2005-2008 MaNGOS <http://www.mangosproject.org/>
- *
- * Copyright (C) 2008 Trinity <http://www.trinitycore.org/>
+/**
+ * This code is part of MaNGOS. Contributor & Copyright details are in AUTHORS/THANKS.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -10,45 +8,48 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef TRINITYCORE_WORLDPACKET_H
-#define TRINITYCORE_WORLDPACKET_H
+#ifndef MANGOSSERVER_WORLDPACKET_H
+#define MANGOSSERVER_WORLDPACKET_H
 
 #include "Common.h"
 #include "ByteBuffer.h"
+#include "Opcodes.h"
 
+// Note: m_opcode and size stored in platfom dependent format
+// ignore endianess until send, and converted at receive
 class WorldPacket : public ByteBuffer
 {
     public:
-                                                            // just container for later use
-        WorldPacket()                                       : ByteBuffer(0), m_opcode(0)
+        // just container for later use
+        WorldPacket()                                       : ByteBuffer(0), m_opcode(MSG_NULL_ACTION)
         {
         }
-        explicit WorldPacket(uint16 opcode, size_t res=200) : ByteBuffer(res), m_opcode(opcode) { }
-                                                            // copy constructor
-        WorldPacket(const WorldPacket &packet)              : ByteBuffer(packet), m_opcode(packet.m_opcode)
+        explicit WorldPacket(Opcodes opcode, size_t res = 200) : ByteBuffer(res), m_opcode(opcode) { }
+        // copy constructor
+        WorldPacket(const WorldPacket& packet)              : ByteBuffer(packet), m_opcode(packet.m_opcode)
         {
         }
 
-        void Initialize(uint16 opcode, size_t newres=200)
+        void Initialize(Opcodes opcode, size_t newres = 200)
         {
             clear();
             _storage.reserve(newres);
             m_opcode = opcode;
         }
 
-        uint16 GetOpcode() const { return m_opcode; }
-        void SetOpcode(uint16 opcode) { m_opcode = opcode; }
+        Opcodes GetOpcode() const { return m_opcode; }
+        void SetOpcode(Opcodes opcode) { m_opcode = opcode; }
+        inline const char* GetOpcodeName() const { return LookupOpcodeName(m_opcode); }
 
     protected:
-        uint16 m_opcode;
+        Opcodes m_opcode;
 };
 #endif
-

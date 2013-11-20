@@ -1,7 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
- *
- * Copyright (C) 2009 Trinity <http://www.trinitycore.org/>
+ * This code is part of MaNGOS. Contributor & Copyright details are in AUTHORS/THANKS.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -10,16 +8,16 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef TRINITY_CREATUREAISELECTOR_H
-#define TRINITY_CREATUREAISELECTOR_H
+#ifndef MANGOS_CREATUREAISELECTOR_H
+#define MANGOS_CREATUREAISELECTOR_H
 
 class CreatureAI;
 class Creature;
@@ -27,8 +25,7 @@ class MovementGenerator;
 
 namespace FactorySelector
 {
-    CreatureAI* selectAI(Creature *);
-    MovementGenerator* selectMovementGenerator(Creature *);
+    CreatureAI* selectAI(Creature*);
+    MovementGenerator* selectMovementGenerator(Creature*);
 }
 #endif
-

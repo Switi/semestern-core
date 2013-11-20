@@ -1,7 +1,5 @@
-/*
- * Copyright (C) 2005-2008 Mangos <http://www.mangosproject.org/>
- *
- * Copyright (C) 2008 Trinity <http://www.trinitycore.org/>
+/**
+ * This code is part of MaNGOS. Contributor & Copyright details are in AUTHORS/THANKS.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,106 +16,94 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef TRINITY_DEFINE_H
-#define TRINITY_DEFINE_H
+#ifndef MANGOS_DEFINE_H
+#define MANGOS_DEFINE_H
 
 #include <sys/types.h>
 
 #include <ace/Basic_Types.h>
+#include <ace/Default_Constants.h>
+#include <ace/OS_NS_dlfcn.h>
 #include <ace/ACE_export.h>
 
 #include "Platform/CompilerDefs.h"
 
-#define TRINITY_LITTLEENDIAN 0
-#define TRINITY_BIGENDIAN    1
+#define MANGOS_LITTLEENDIAN 0
+#define MANGOS_BIGENDIAN    1
 
-#if !defined(TRINITY_ENDIAN)
+#if !defined(MANGOS_ENDIAN)
 #  if defined (ACE_BIG_ENDIAN)
-#    define TRINITY_ENDIAN TRINITY_BIGENDIAN
-#  else //ACE_BYTE_ORDER != ACE_BIG_ENDIAN
-#    define TRINITY_ENDIAN TRINITY_LITTLEENDIAN
-#  endif //ACE_BYTE_ORDER
-#endif //TRINITY_ENDIAN
+#    define MANGOS_ENDIAN MANGOS_BIGENDIAN
+#  else // ACE_BYTE_ORDER != ACE_BIG_ENDIAN
+#    define MANGOS_ENDIAN MANGOS_LITTLEENDIAN
+#  endif // ACE_BYTE_ORDER
+#endif // MANGOS_ENDIAN
+
+typedef ACE_SHLIB_HANDLE MANGOS_LIBRARY_HANDLE;
+
+#define MANGOS_SCRIPT_NAME "mangosscript"
+#define MANGOS_SCRIPT_SUFFIX ACE_DLL_SUFFIX
+#define MANGOS_SCRIPT_PREFIX ACE_DLL_PREFIX
+#define MANGOS_LOAD_LIBRARY(libname)    ACE_OS::dlopen(libname)
+#define MANGOS_CLOSE_LIBRARY(hlib)      ACE_OS::dlclose(hlib)
+#define MANGOS_GET_PROC_ADDR(hlib,name) ACE_OS::dlsym(hlib,name)
+
+#define MANGOS_PATH_MAX PATH_MAX                            // ace/os_include/os_limits.h -> ace/Basic_Types.h
 
 #if PLATFORM == PLATFORM_WINDOWS
-#  define TRINITY_EXPORT __declspec(dllexport)
-#  define TRINITY_LIBRARY_HANDLE HMODULE
-#  define TRINITY_LOAD_LIBRARY(a) LoadLibrary(a)
-#  define TRINITY_CLOSE_LIBRARY FreeLibrary
-#  define TRINITY_GET_PROC_ADDR GetProcAddress
-#  define TRINITY_IMPORT __cdecl
-#  define TRINITY_SCRIPT_EXT ".dll"
-#  define TRINITY_SCRIPT_NAME "TrinityScript"
-#  define TRINITY_PATH_MAX MAX_PATH
-#else //PLATFORM != PLATFORM_WINDOWS
-#  define TRINITY_LIBRARY_HANDLE void*
-#  define TRINITY_EXPORT export
-#  define TRINITY_LOAD_LIBRARY(a) dlopen(a,RTLD_NOW)
-#  define TRINITY_CLOSE_LIBRARY dlclose
-#  define TRINITY_GET_PROC_ADDR dlsym
+#  define MANGOS_EXPORT __declspec(dllexport)
+#  define MANGOS_IMPORT __cdecl
+#else // PLATFORM != PLATFORM_WINDOWS
+#  define MANGOS_EXPORT export
 #  if defined(__APPLE_CC__) && defined(BIG_ENDIAN)
-#    define TRINITY_IMPORT __attribute__ ((longcall))
+#    define MANGOS_IMPORT __attribute__ ((longcall))
+#  elif defined(__x86_64__)
+#    define MANGOS_IMPORT
 #  else
-#    define TRINITY_IMPORT __attribute__ ((cdecl))
+#    define MANGOS_IMPORT __attribute__ ((cdecl))
 #  endif //__APPLE_CC__ && BIG_ENDIAN
-#  if defined(__APPLE_CC__)
-#    define TRINITY_SCRIPT_EXT ".dylib"
-#    if defined(DO_SCRIPTS)
-#      define TRINITY_SCRIPT_NAME "../lib/libtrinityscript"
-#    else
-#      define TRINITY_SCRIPT_NAME "../lib/libtrinityinterface"
-#    endif // DO_SCRIPTS
-#  else
-#    define TRINITY_SCRIPT_EXT ".so"
-#    if defined(DO_SCRIPTS)
-#      define TRINITY_SCRIPT_NAME "libtrinityscript"
-#    else
-#      define TRINITY_SCRIPT_NAME "libtrinityinterface"
-#    endif // DO_SCRIPTS
-#  endif //__APPLE_CC__
-#  define TRINITY_PATH_MAX PATH_MAX
-#endif //PLATFORM
+#endif // PLATFORM
 
 #if PLATFORM == PLATFORM_WINDOWS
-#  ifdef TRINITY_WIN32_DLL_IMPORT
-#    define TRINITY_DLL_DECL __declspec(dllimport)
-#  else //!TRINITY_WIN32_DLL_IMPORT
-#    ifdef TRINITY_WIND_DLL_EXPORT
-#      define TRINITY_DLL_DECL __declspec(dllexport)
-#    else //!TRINITY_WIND_DLL_EXPORT
-#      define TRINITY_DLL_DECL
-#    endif //TRINITY_WIND_DLL_EXPORT
-#  endif //TRINITY_WIN32_DLL_IMPORT
-#else //PLATFORM != PLATFORM_WINDOWS
-#  define TRINITY_DLL_DECL
-#endif //PLATFORM
+#  ifdef MANGOS_WIN32_DLL_IMPORT
+#    define MANGOS_DLL_DECL __declspec(dllimport)
+#  else //!MANGOS_WIN32_DLL_IMPORT
+#    ifdef MANGOS_WIND_DLL_EXPORT
+#      define MANGOS_DLL_DECL __declspec(dllexport)
+#    else //!MANGOS_WIND_DLL_EXPORT
+#      define MANGOS_DLL_DECL
+#    endif // MANGOS_WIND_DLL_EXPORT
+#  endif // MANGOS_WIN32_DLL_IMPORT
+#else // PLATFORM != PLATFORM_WINDOWS
+#  define MANGOS_DLL_DECL
+#endif // PLATFORM
 
 #if PLATFORM == PLATFORM_WINDOWS
-#  define TRINITY_DLL_SPEC __declspec(dllexport)
+#  define MANGOS_DLL_SPEC __declspec(dllexport)
 #  ifndef DECLSPEC_NORETURN
 #    define DECLSPEC_NORETURN __declspec(noreturn)
-#  endif //DECLSPEC_NORETURN
-#else //PLATFORM != PLATFORM_WINDOWS
-#  define TRINITY_DLL_SPEC
+#  endif // DECLSPEC_NORETURN
+#else // PLATFORM != PLATFORM_WINDOWS
+#  define MANGOS_DLL_SPEC
 #  define DECLSPEC_NORETURN
-#endif //PLATFORM
+#endif // PLATFORM
 
 #if !defined(DEBUG)
-#  define TRINITY_INLINE inline
-#else //DEBUG
-#  if !defined(TRINITY_DEBUG)
-#    define TRINITY_DEBUG
-#  endif //TRINITY_DEBUG
-#  define TRINITY_INLINE
+#  define MANGOS_INLINE inline
+#else // DEBUG
+#  if !defined(MANGOS_DEBUG)
+#    define MANGOS_DEBUG
+#  endif // MANGOS_DEBUG
+#  define MANGOS_INLINE
 #endif //!DEBUG
 
 #if COMPILER == COMPILER_GNU
 #  define ATTR_NORETURN __attribute__((noreturn))
 #  define ATTR_PRINTF(F,V) __attribute__ ((format (printf, F, V)))
-#else //COMPILER != COMPILER_GNU
+#else // COMPILER != COMPILER_GNU
 #  define ATTR_NORETURN
 #  define ATTR_PRINTF(F,V)
-#endif //COMPILER == COMPILER_GNU
+#endif // COMPILER == COMPILER_GNU
 
 typedef ACE_INT64 int64;
 typedef ACE_INT32 int32;
@@ -131,9 +117,23 @@ typedef ACE_UINT8 uint8;
 #if COMPILER != COMPILER_MICROSOFT
 typedef uint16      WORD;
 typedef uint32      DWORD;
-#endif //COMPILER
+#endif // COMPILER
+
+#define CONCAT(x, y) CONCAT1(x, y)
+#define CONCAT1(x, y) x##y
+#define STATIC_ASSERT_WORKAROUND(expr, msg) typedef char CONCAT(static_assert_failed_at_line_, __LINE__) [(expr) ? 1 : -1]
+
+#if COMPILER == COMPILER_GNU
+#  if !defined(__GXX_EXPERIMENTAL_CXX0X__) || (__GNUC__ < 4) || (__GNUC__ == 4) && (__GNUC_MINOR__ < 7)
+#    define override
+#    define static_assert(a, b) STATIC_ASSERT_WORKAROUND(a, b)
+#  endif
+#elif COMPILER == COMPILER_MICROSOFT
+#  if _MSC_VER < 1600
+#    define static_assert(a, b) STATIC_ASSERT_WORKAROUND(a, b)
+#  endif
+#endif
 
 typedef uint64 OBJECT_HANDLE;
 
-#endif //TRINITY_DEFINE_H
-
+#endif // MANGOS_DEFINE_H

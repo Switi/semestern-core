@@ -1,7 +1,5 @@
-/*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
- *
- * Copyright (C) 2008-2009 Trinity <http://www.trinitycore.org/>
+/**
+ * This code is part of MaNGOS. Contributor & Copyright details are in AUTHORS/THANKS.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -10,41 +8,41 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef TRINITY_PETAI_H
-#define TRINITY_PETAI_H
+#ifndef MANGOS_PETAI_H
+#define MANGOS_PETAI_H
 
 #include "CreatureAI.h"
+#include "ObjectGuid.h"
 #include "Timer.h"
 
 class Creature;
 class Spell;
 
-class TRINITY_DLL_DECL PetAI : public CreatureAI
+class MANGOS_DLL_DECL PetAI : public CreatureAI
 {
     public:
 
-        explicit PetAI(Creature *c);
+        explicit PetAI(Creature* c);
 
-        void EnterEvadeMode();
-        void JustDied(Unit *who) { _stopAttack(); }
+        void MoveInLineOfSight(Unit*) override;
+        void AttackStart(Unit*) override;
+        void EnterEvadeMode() override;
+        void AttackedBy(Unit*) override;
+        bool IsVisible(Unit*) const override;
 
-        void UpdateAI(const uint32);
-        static int Permissible(const Creature *);
-
-        void KilledUnit(Unit *victim);
-        void AttackStart(Unit *target);
-        void MovementInform(uint32 moveType, uint32 data);
+        void UpdateAI(const uint32) override;
+        static int Permissible(const Creature*);
 
     private:
-        bool _isVisible(Unit *) const;
+        bool _isVisible(Unit*) const;
         bool _needToStop(void) const;
         void _stopAttack(void);
 
@@ -52,13 +50,8 @@ class TRINITY_DLL_DECL PetAI : public CreatureAI
 
         TimeTracker i_tracker;
         bool inCombat;
-        std::set<uint64> m_AllySet;
-        uint32 m_updateAlliesTimer;
 
-        Unit *SelectNextTarget();
-        void HandleReturnMovement();
-        void DoAttack(Unit *target, bool chase);
-        bool _CanAttack(Unit *target);
+        GuidSet m_AllySet;
+        uint32 m_updateAlliesTimer;
 };
 #endif
-
